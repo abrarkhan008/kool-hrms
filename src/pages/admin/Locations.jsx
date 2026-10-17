@@ -25,6 +25,7 @@ export default function Locations() {
   const [rows, setRows] = useState([]);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [live, setLive] = useState([]);
   const staff = state.employees.filter((e) => e.active !== false);
 
   const load = useCallback(async () => {
@@ -45,6 +46,11 @@ export default function Locations() {
           admin: true,
         }),
       );
+      try {
+        setLive(await api("/api/live", { admin: true }));
+      } catch {
+        /* ignore */
+      }
     } catch (e) {
       setErr(e.message);
       if (/key/i.test(e.message)) localStorage.removeItem("admin_key");
@@ -105,6 +111,66 @@ export default function Locations() {
           Refresh.)
         </div>
       )}
+      <Card className="mb-5" title="Right now (live position)" pad={false}>
+        {!live.length ? (
+          <div className="p-5 text-sm text-slate-400">
+            No employee has shared a position yet. They must open the website on
+            their phone.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  {["Employee", "Status", "Last seen", "Map"].map((h) => (
+                    <th key={h} className="th">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {live.map((l) => {
+                  const mins = (Date.now() - new Date(l.updated_at)) / 60000;
+                  return (
+                    <tr key={l.emp_id}>
+                      <td className="td font-medium">
+                        {l.emp_name || l.emp_id}
+                      </td>
+                      <td className="td">
+                        {mins > 10 ? (
+                          <Pill>No signal</Pill>
+                        ) : l.on_site ? (
+                          <Pill cls="bg-emerald-100 text-emerald-700">
+                            On location · {l.site}
+                          </Pill>
+                        ) : (
+                          <Pill cls="bg-red-100 text-red-700">
+                            Off location
+                          </Pill>
+                        )}
+                      </td>
+                      <td className="td text-xs text-slate-500">
+                        {mins < 1 ? "just now" : `${Math.round(mins)} min ago`}
+                      </td>
+                      <td className="td">
+                        <a
+                          className="flex items-center gap-1 text-sm font-medium text-brand"
+                          target="_blank"
+                          rel="noreferrer"
+                          href={`https://www.google.com/maps?q=${l.lat},${l.lng}`}
+                        >
+                          Open map <ExternalLink size={13} />
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
       <div className="space-y-5">
         {groups.map(({ e, v }) => (
           <Card

@@ -4,6 +4,7 @@ import { useStore } from "../lib/store.jsx";
 import { punch } from "../lib/attendance.js";
 import { todayKey } from "../lib/date.js";
 import { nearestSite } from "../lib/geo.js";
+import { api, apiOn } from "../lib/api.js";
 
 export default function LocationTracker({ emp }) {
   const { state, update } = useStore();
@@ -57,6 +58,18 @@ export default function LocationTracker({ emp }) {
 
         if (auto || Date.now() - lastSave.current > 60000) {
           lastSave.current = Date.now();
+          if (apiOn)
+            api("/api/live", {
+              method: "POST",
+              body: {
+                lat,
+                lng,
+                on,
+                site: near?.site.name || "",
+                acc: Math.round(p.coords.accuracy),
+                empName: emp.name,
+              },
+            }).catch(() => {});
           const r = auto ? punch(st.attendance, emp.id, auto) : null;
           update((s) => {
             (s.locations ||= {})[emp.id] = {

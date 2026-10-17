@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useStore } from "../lib/store.jsx";
 import Logo from "./Logo.jsx";
+import SyncAgent from "./SyncAgent.jsx";
 
 const NAV = [
   ["/", "Dashboard", LayoutDashboard],
@@ -25,7 +26,7 @@ const NAV = [
   ["/leaves", "Leaves & Holidays", CalendarDays],
   ["/salary", "Salary", Wallet],
   ["/performance", "Performance / KPI", Trophy],
-  ["/lookup", "Lookup", Search],
+  // ["/lookup", "Lookup", Search],
   ["/work", "Work process", ClipboardList],
   ["/locations", "Live location", MapPin],
   ["/settings", "Settings", Cog],
@@ -79,7 +80,10 @@ export default function Layout({ children }) {
             <LogOut size={16} /> Logout
           </button>
         </header>
-        <main className="mx-auto max-w-5xl p-4 sm:p-8">{children}</main>
+        <main className="mx-auto max-w-5xl p-4 sm:p-8">
+          <SyncAgent />
+          {children}
+        </main>
       </div>
     );
   }
@@ -106,7 +110,10 @@ export default function Layout({ children }) {
           {open ? <X size={18} /> : <Menu size={18} />}
         </button>
       </header>
-      <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+      <main className="p-4 sm:p-6 lg:p-8">
+        <SyncAgent />
+        {children}
+      </main>
     </div>
   );
 }

@@ -22,6 +22,7 @@ import {
 import { Card, PageHeader, Field, Num, Toggle } from "../../components/ui.jsx";
 import { getPosition } from "../../lib/geo.js";
 import { api, apiOn } from "../../lib/api.js";
+import { DEFAULT_PARTS } from "../../lib/parts.js";
 
 const COLORS = [
   "#0e7490",
@@ -491,7 +492,22 @@ export default function Settings() {
           {locMsg && <span className="text-sm text-slate-500">{locMsg}</span>}
         </div>
       </Section>
-
+      <Section
+        title="Spare parts / materials list"
+        sub="One part per line. Employees pick from this list when they add work. Press Publish to phones after changing it."
+      >
+        <textarea
+          rows={8}
+          className="input"
+          value={S.partsText ?? DEFAULT_PARTS.join("\n")}
+          onChange={(e) =>
+            update((s) => {
+              s.settings.partsText = e.target.value;
+              return s;
+            })
+          }
+        />
+      </Section>
       <Section
         title="Office timing"
         sub="Login 9:30 AM with grace till 10:00 AM, logout from 7:00 PM, overtime after 7:30 PM — change anything below."
@@ -620,6 +636,21 @@ export default function Settings() {
             <Num
               value={S.salary.basicPct}
               onChange={(v) => set("salary", "basicPct", v)}
+            />
+          </Field>
+          <Field label="Late fine per late mark (₹)" hint="0 = no fine">
+            <Num
+              value={S.salary.lateFine ?? 0}
+              onChange={(v) => set("salary", "lateFine", v)}
+            />
+          </Field>
+          <Field
+            label="Free late marks per month"
+            hint="Fine starts after this many"
+          >
+            <Num
+              value={S.salary.lateFree ?? 3}
+              onChange={(v) => set("salary", "lateFree", v)}
             />
           </Field>
           <Field label="HRA %">

@@ -41,7 +41,14 @@ export function calcSalary(emp, mk, state) {
     bonus = num(inp.bonus),
     other = num(inp.other);
   const perf = score(emp, performance?.[mk]?.[emp.id]);
-  const kpiPct = s.kpiEnabled && perf.grade ? s.kpiSlabs[perf.grade] || 0 : 0;
+  const manual = performance?.[mk]?.[emp.id]?.pct;
+  const kpiPct = !s.kpiEnabled
+    ? 0
+    : manual !== undefined && manual !== ""
+      ? num(manual)
+      : perf.grade
+        ? s.kpiSlabs[perf.grade] || 0
+        : 0;
   const kpi = (earned * kpiPct) / 100;
   const gross = earned + otAmount + nightStayAmt + bike + bonus + other + kpi;
 
@@ -50,15 +57,21 @@ export function calcSalary(emp, mk, state) {
   const pf = emp.pf ? (pfBase * s.pfPct) / 100 : 0;
   const esiApplies = emp.esi && ctc <= s.esiCeiling;
   const esi = esiApplies ? ((earned + otAmount) * s.esiPct) / 100 : 0;
-  
+
   const pfEmployer = emp.pf ? (pfBase * (s.pfEmployerPct ?? 12)) / 100 : 0;
   const esiEmployer = esiApplies
     ? ((earned + otAmount) * (s.esiEmployerPct ?? 3.25)) / 100
     : 0;
   const loan = num(inp.advance),
     fine = num(inp.otherDed);
+  const lateFineAuto =
+    Math.max(0, sum.late - (s.lateFree ?? 3)) * (s.lateFine ?? 0);
+  const lateFine =
+    inp.lateFine !== undefined && inp.lateFine !== ""
+      ? num(inp.lateFine)
+      : lateFineAuto;
   const advance = num(inp.advance),
-    otherDed = num(inp.otherDed);
+    otherDed = num(inp.otherDed) + lateFine;
   const deductions = pf + esi + advance + otherDed;
   const net = gross - deductions;
 
@@ -68,6 +81,8 @@ export function calcSalary(emp, mk, state) {
     basis,
     perDay,
     perHour,
+    lateFine,
+    lateFineAuto,
     ctc,
     counts: sum.counts,
     paidDays,

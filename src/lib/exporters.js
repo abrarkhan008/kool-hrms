@@ -3,7 +3,7 @@ import ExcelJS from "exceljs";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { monthLabel, monthDays, round2, dayName, timeLabel } from "./date.js";
-import { monthSummary, STATUS } from "./attendance.js";
+import { monthSummary, dayInfo, STATUS } from "./attendance.js";
 import { totals } from "./payroll.js";
 import { slipData, dmy } from "./slip.js";
 
@@ -68,6 +68,7 @@ function pdfHeader(doc, settings, title, sub) {
 
 /* ------------------------------ PDF: salary slips (one page per employee) ------------------------------ */
 function putImg(doc, src, x, y, maxW, maxH) {
+  if (typeof src !== "string" || !src.startsWith("data:")) return;
   try {
     const p = doc.getImageProperties(src),
       k = Math.min(maxW / p.width, maxH / p.height),
@@ -727,4 +728,98 @@ export async function attendanceXlsx(state, mk) {
     }),
   );
   await save(wb, `Attendance_${mk}.xlsx`);
+}
+export async function workXlsx(list, state, mk) {
+  const s = state.settings;
+  const nm = (id) => state.employees.find((e) => e.id === id)?.name || id;
+  const brand = "FF" + hex(s.company.color);
+  const wb = new ExcelJS.Workbook();
+  const style = (ws) => {
+    ws.getRow(1).eachCell((c) => {
+      c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: brand } };
+      c.alignment = { horizontal: "center", wrapText: true };
+    });
+    ws.views = [{ state: "frozen", ySplit: 1 }];
+  };
+  const part = (w, k, old) =>
+    [
+      ...(w.parts || [])
+        .filter((p) => p.kind === k)
+        .map((p) => `${p.item} x${p.qty}`),
+      old,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  const cols = [
+    ["Date", 12],
+    ["Employee", 22],
+    ["Work started", 11],
+    ["Work finished", 11],
+    ["Punch in", 11],
+    ["Punch out", 11],
+    ["Client / customer", 24],
+    ["Complaint / service", 28],
+    ["Status", 12],
+    ["Action taken", 30],
+    ["Materials NEW", 28],
+    ["Materials DEFECTIVE", 28],
+    ["Materials CHANGED", 28],
+    ["Repeat complaint", 12],
+    ["Repeat by", 18],
+    ["Map", 30],
+  ];
+  const line = (w) => {
+    const e = state.employees.find((x) => x.id === w.empId);
+    const d = e ? dayInfo(e, w.date, s, state.attendance) : null;
+    return [
+      w.date,
+      nm(w.empId),
+      w.start || "",
+      w.end || "",
+      d?.inTime ? timeLabel(d.inTime) : "",
+      d?.outTime ? timeLabel(d.outTime) : "",
+      w.client,
+      w.work,
+      w.status,
+      w.action || "",
+      part(w, "New", w.mNew),
+      part(w, "Defective", w.mDefect),
+      part(w, "Changed", w.mChanged),
+      w.repeat ? "Yes" : "No",
+      w.repeatBy || "",
+      w.gps ? `https://www.google.com/maps?q=${w.gps.lat},${w.gps.lng}` : "",
+    ];
+  };
+  const add = (name, rows) => {
+    const ws = wb.addWorksheet(name);
+    ws.columns = cols.map(([h, width]) => ({ header: h, width }));
+    rows.forEach((w) => ws.addRow(line(w)));
+    style(ws);
+  };
+  add("Daily_Work", list);
+  add(
+    "Repeat_Complaints",
+    list.filter((w) => w.repeat),
+  );
+
+  const sum = {};
+  list.forEach((w) =>
+    (w.parts || []).forEach((p) => {
+      if (!p.item) return;
+      const k = p.kind + "|" + p.item;
+      sum[k] = (sum[k] || 0) + (Number(p.qty) || 1);
+    }),
+  );
+  const sp = wb.addWorksheet("Spares_Summary");
+  sp.columns = [
+    { header: "Type", width: 14 },
+    { header: "Part / material", width: 34 },
+    { header: "Total quantity", width: 14 },
+  ];
+  Object.entries(sum)
+    .sort()
+    .forEach(([k, q]) => sp.addRow([...k.split("|"), q]));
+  style(sp);
+  await save(wb, `Work_${mk}.xlsx`);
 }

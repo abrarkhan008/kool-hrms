@@ -22,7 +22,8 @@ import {
 } from "../../components/ui.jsx";
 import { GRADE_CLS } from "../../lib/performance.js";
 import { Wallet, TrendingUp, Landmark, Hourglass } from "lucide-react";
-import { slipData } from "../../lib/slip.js";
+import { slipData, dmy } from "../../lib/slip.js";
+import { api, apiOn } from "../../lib/api.js";
 
 export default function Salary() {
   const { state, update } = useStore();
@@ -227,6 +228,18 @@ function ExtrasModal({ r, mk, onClose, update }) {
       (s.payroll[mk] ||= {})[r.emp.id] = f;
       return s;
     });
+    const fine =
+      (f.lateFine !== undefined && f.lateFine !== "" ? Number(f.lateFine) : 0) +
+      (Number(f.otherDed) || 0);
+    if (apiOn && fine > 0 && localStorage.getItem("admin_key"))
+      api("/api/notice", {
+        method: "POST",
+        admin: true,
+        body: {
+          empId: r.emp.id,
+          text: `Fine of ₹${fine} added for ${monthLabel(mk)}.${f.fineNote ? " Reason: " + f.fineNote : ""}`,
+        },
+      }).catch(() => {});
     onClose();
   };
   return (
@@ -271,6 +284,20 @@ function ExtrasModal({ r, mk, onClose, update }) {
         <Field label="System fine (₹)">
           <Num value={f.otherDed} onChange={(v) => set("otherDed", v)} />
         </Field>
+        <Field
+          label="Late fine (₹)"
+          hint={`Empty = automatic (now ₹${r.lateFineAuto}). Type 0 to waive.`}
+        >
+          <Num value={f.lateFine} onChange={(v) => set("lateFine", v)} />
+        </Field>
+        <Field label="Reason shown to employee">
+          <input
+            className="input"
+            value={f.fineNote || ""}
+            onChange={(e) => set("fineNote", e.target.value)}
+          />
+        </Field>
+
         {/* <Field label="Overtime hours override" hint={`Auto from attendance: ${r.otHours === Number(f.otHours) ? '' : ''}${fmtHours(r.otHours)}. Type a number to replace it.`}><Num value={f.otHours} onChange={(v) => set('otHours', v)} step="0.25" /></Field> */}
       </div>
     </Modal>

@@ -85,6 +85,29 @@ export default function Employees() {
     });
   };
   const set = (k, v) => setEdit((x) => ({ ...x, [k]: v }));
+  const onPhoto = (ev) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 300 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      setEdit((x) => ({
+        ...x,
+        photos: [...(x.photos || []), c.toDataURL("image/jpeg", 0.65)].slice(
+          0,
+          2,
+        ),
+      }));
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+    ev.target.value = "";
+  };
 
   return (
     <div>
@@ -255,6 +278,42 @@ export default function Employees() {
                 onChange={(e) => set("doj", e.target.value)}
               />
             </Field>
+            <div className="sm:col-span-2">
+              <div className="label">
+                Photos (up to 2, shown on the employee's page)
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {(edit.photos || []).map((p, i) => (
+                  <div key={i} className="relative">
+                    <img
+                      src={p}
+                      alt=""
+                      className="h-20 w-20 rounded-xl object-cover"
+                    />
+                    <button
+                      type="button"
+                      className="absolute -right-2 -top-2 rounded-full bg-red-500 px-1.5 text-xs text-white"
+                      onClick={() =>
+                        set(
+                          "photos",
+                          edit.photos.filter((_, n) => n !== i),
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {(edit.photos || []).length < 2 && (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="text-sm"
+                    onChange={onPhoto}
+                  />
+                )}
+              </div>
+            </div>
             <Field label="Bank name">
               <input
                 className="input"

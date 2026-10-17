@@ -29,6 +29,7 @@ import { CalendarCheck, Timer, Hourglass, Target } from "lucide-react";
 import BrandBar from "../../components/BrandBar.jsx";
 import LocationTracker from "../../components/LocationTracker.jsx";
 import WorkSheet from "../../components/WorkSheet.jsx";
+import LeaveRequest from "../../components/LeaveRequest.jsx";
 
 export default function Punch() {
   const { state, session, update } = useStore();
@@ -48,6 +49,10 @@ export default function Punch() {
   const sum = monthSummary(emp, mk, state.settings, state.attendance);
   const year = Number(mk.slice(0, 4));
   const used = leaveUsed(emp, year, state.attendance);
+  const SL = state.settings.salary;
+  const lateFine =
+    Math.max(0, sum.late - (SL.lateFree ?? 3)) * (SL.lateFine ?? 0);
+  const notes = state.notices || [];
 
   const doPunch = (kind) => {
     const r = punch(state.attendance, emp.id, kind);
@@ -108,6 +113,18 @@ export default function Punch() {
             {clock}
           </div>
           <div className="text-sm text-white/80">
+            {emp.photos?.length > 0 && (
+              <div className="mb-3 flex justify-center gap-3">
+                {emp.photos.map((p, i) => (
+                  <img
+                    key={i}
+                    src={p}
+                    alt=""
+                    className="h-20 w-20 rounded-full object-cover ring-4 ring-white/60"
+                  />
+                ))}
+              </div>
+            )}
             Hello <b>{emp.name}</b> · {emp.designation} · {emp.id}
           </div>
           <LocationTracker emp={emp} />
@@ -179,6 +196,28 @@ export default function Punch() {
           </button>
         </div>
       </div>
+      {(lateFine > 0 || notes.length > 0) && (
+        <div className="space-y-2">
+          {lateFine > 0 && (
+            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              You have {sum.late} late marks in {monthLabel(mk)}. Late fine: ₹
+              {lateFine} ({SL.lateFree ?? 3} late marks are free, then ₹
+              {SL.lateFine} each).
+            </div>
+          )}
+          {notes.map((n) => (
+            <div
+              key={n.id}
+              className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            >
+              {n.text}
+              <div className="text-[10px] text-amber-600">
+                {new Date(n.created_at).toLocaleDateString("en-IN")}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Stat
@@ -215,6 +254,7 @@ export default function Punch() {
       <Card title="Calendar" action={<Legend />}>
         <MonthCalendar emp={emp} mk={mk} state={state} />
       </Card>
+      <LeaveRequest emp={emp} />
       <WorkSheet empId={emp.id} />
       <PinModal
         open={pinOpen}
