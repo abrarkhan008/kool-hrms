@@ -103,7 +103,7 @@ function ExtrasModal({ r, mk, onClose, update }) {
         <Field label="Other allowance (₹)"><Num value={f.other} onChange={(v) => set('other', v)} /></Field>
         <Field label="Salary advance / loan instalment (₹)"><Num value={f.advance} onChange={(v) => set('advance', v)} /></Field>
         <Field label="Other deduction (₹)"><Num value={f.otherDed} onChange={(v) => set('otherDed', v)} /></Field>
-        <Field label="Overtime hours override" hint={`Auto from attendance: ${r.otHours === Number(f.otHours) ? '' : ''}${fmtHours(r.otHours)}. Type a number to replace it.`}><Num value={f.otHours} onChange={(v) => set('otHours', v)} step="0.25" /></Field>
+        {/* <Field label="Overtime hours override" hint={`Auto from attendance: ${r.otHours === Number(f.otHours) ? '' : ''}${fmtHours(r.otHours)}. Type a number to replace it.`}><Num value={f.otHours} onChange={(v) => set('otHours', v)} step="0.25" /></Field> */}
       </div>
     </Modal>
   )
