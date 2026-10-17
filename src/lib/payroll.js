@@ -50,6 +50,7 @@ export function calcSalary(emp, mk, state) {
   const pf = emp.pf ? (pfBase * s.pfPct) / 100 : 0;
   const esiApplies = emp.esi && ctc <= s.esiCeiling;
   const esi = esiApplies ? ((earned + otAmount) * s.esiPct) / 100 : 0;
+  
   const pfEmployer = emp.pf ? (pfBase * (s.pfEmployerPct ?? 12)) / 100 : 0;
   const esiEmployer = esiApplies
     ? ((earned + otAmount) * (s.esiEmployerPct ?? 3.25)) / 100

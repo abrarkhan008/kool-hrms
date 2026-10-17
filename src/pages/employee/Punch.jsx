@@ -27,6 +27,8 @@ import MonthCalendar, { Legend } from "../../components/MonthCalendar.jsx";
 import { Card, Stat, Modal, Field, MonthPicker } from "../../components/ui.jsx";
 import { CalendarCheck, Timer, Hourglass, Target } from "lucide-react";
 import BrandBar from "../../components/BrandBar.jsx";
+import LocationTracker from "../../components/LocationTracker.jsx";
+import WorkSheet from "../../components/WorkSheet.jsx";
 
 export default function Punch() {
   const { state, session, update } = useStore();
@@ -108,6 +110,7 @@ export default function Punch() {
           <div className="text-sm text-white/80">
             Hello <b>{emp.name}</b> · {emp.designation} · {emp.id}
           </div>
+          <LocationTracker emp={emp} />
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button
               onClick={() => doPunch("in")}
@@ -212,6 +215,7 @@ export default function Punch() {
       <Card title="Calendar" action={<Legend />}>
         <MonthCalendar emp={emp} mk={mk} state={state} />
       </Card>
+      <WorkSheet empId={emp.id} />
       <PinModal
         open={pinOpen}
         onClose={() => setPinOpen(false)}

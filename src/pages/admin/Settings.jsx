@@ -6,6 +6,8 @@ import {
   RotateCcw,
   Sparkles,
   ShieldCheck,
+  MapPin,
+  Plus,
 } from "lucide-react";
 import { useStore } from "../../lib/store.jsx";
 import { WEEKDAYS } from "../../lib/defaults.js";
@@ -18,6 +20,8 @@ import {
   toKey,
 } from "../../lib/date.js";
 import { Card, PageHeader, Field, Num, Toggle } from "../../components/ui.jsx";
+import { getPosition } from "../../lib/geo.js";
+import { api, apiOn } from "../../lib/api.js";
 
 const COLORS = [
   "#0e7490",
@@ -200,6 +204,66 @@ export default function Settings() {
     });
     setNote("Demo attendance added.");
   };
+  const sites = S.sites || [];
+  const geo = { autoIn: true, autoOut: true, ...(S.geo || {}) };
+  const [locMsg, setLocMsg] = useState("");
+  const setSites = (arr) =>
+    update((s) => {
+      s.settings.sites = arr;
+      return s;
+    });
+  const editSite = (i, k, v) =>
+    setSites(sites.map((x, n) => (n === i ? { ...x, [k]: v } : x)));
+  const setGeo = (k, v) =>
+    update((s) => {
+      s.settings.geo = { ...(s.settings.geo || {}), [k]: v };
+      return s;
+    });
+  const addSiteHere = async () => {
+    setLocMsg("Getting your location…");
+    try {
+      const p = await getPosition();
+      setSites([
+        ...sites,
+        {
+          id: Date.now().toString(36),
+          name: "Office",
+          lat: p.lat.toFixed(6),
+          lng: p.lng.toFixed(6),
+          radius: 150,
+        },
+      ]);
+      setLocMsg("Site added at your current position. Rename it below.");
+    } catch {
+      setLocMsg(
+        'Could not read location. Allow location permission, or use "Add site manually".',
+      );
+    }
+  };
+  const publish = async () => {
+    if (!apiOn)
+      return setNote("Server address not set (VITE_API_URL in .env).");
+    if (!localStorage.getItem("admin_key")) {
+      const k = prompt("Enter the ADMIN_KEY you set in Render");
+      if (!k) return;
+      localStorage.setItem("admin_key", k);
+    }
+    try {
+      setNote("Publishing…");
+      await api("/api/config", {
+        method: "PUT",
+        admin: true,
+        body: {
+          employees: state.employees,
+          settings: { ...S, admin: undefined },
+        },
+      });
+      setNote("Published. Employees can now log in on their own phones.");
+    } catch (e) {
+      setNote("Failed: " + e.message);
+      localStorage.removeItem("admin_key");
+    }
+  };
 
   // const Section = ({ title, children, sub }) => (
   //   <Card title={title}>
@@ -343,6 +407,88 @@ export default function Settings() {
               )}
             </div>
           ))}
+        </div>
+      </Section>
+      <Section
+        title="Work locations"
+        sub="Employees auto punch-in when they reach a site and auto punch-out when they leave all sites. Stand at the office and press the first button."
+      >
+        <div className="mb-4 flex flex-wrap items-center gap-5">
+          <Toggle
+            checked={geo.autoIn}
+            onChange={(v) => setGeo("autoIn", v)}
+            label="Auto punch-in on arrival"
+          />
+          <Toggle
+            checked={geo.autoOut}
+            onChange={(v) => setGeo("autoOut", v)}
+            label="Auto punch-out on leaving"
+          />
+        </div>
+        <div className="space-y-3">
+          {sites.map((st, i) => (
+            <div
+              key={st.id}
+              className="grid gap-3 sm:grid-cols-[1.5fr_1fr_1fr_100px_auto]"
+            >
+              <input
+                className="input"
+                placeholder="Site name"
+                value={st.name}
+                onChange={(e) => editSite(i, "name", e.target.value)}
+              />
+              <input
+                className="input"
+                inputMode="decimal"
+                placeholder="Latitude"
+                value={st.lat}
+                onChange={(e) => editSite(i, "lat", e.target.value)}
+              />
+              <input
+                className="input"
+                inputMode="decimal"
+                placeholder="Longitude"
+                value={st.lng}
+                onChange={(e) => editSite(i, "lng", e.target.value)}
+              />
+              <input
+                className="input"
+                inputMode="numeric"
+                placeholder="Radius m"
+                value={st.radius}
+                onChange={(e) => editSite(i, "radius", e.target.value)}
+              />
+              <button
+                className="btn-danger"
+                onClick={() => setSites(sites.filter((_, n) => n !== i))}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button className="btn-primary" onClick={addSiteHere}>
+            <MapPin size={16} /> Add site at my current location
+          </button>
+          <button
+            className="btn-ghost"
+            onClick={() =>
+              setSites([
+                ...sites,
+                {
+                  id: Date.now().toString(36),
+                  name: "",
+                  lat: "",
+                  lng: "",
+                  radius: 150,
+                },
+              ])
+            }
+          >
+            <Plus size={16} /> Add site manually
+          </button>
+          {locMsg && <span className="text-sm text-slate-500">{locMsg}</span>}
         </div>
       </Section>
 
@@ -547,6 +693,20 @@ export default function Settings() {
               onChange={(v) => set("salary", "esiPct", v)}
             />
           </Field>
+          <Field label="Employer PF contribution %">
+            <Num
+              step="0.25"
+              value={S.salary.pfEmployerPct ?? 12}
+              onChange={(v) => set("salary", "pfEmployerPct", v)}
+            />
+          </Field>
+          <Field label="Employer ESI contribution %">
+            <Num
+              step="0.05"
+              value={S.salary.esiEmployerPct ?? 3.25}
+              onChange={(v) => set("salary", "esiEmployerPct", v)}
+            />
+          </Field>
           <Field label="ESI applies only if CTC is up to (₹)">
             <Num
               value={S.salary.esiCeiling}
@@ -654,6 +814,9 @@ export default function Settings() {
         <div className="flex flex-wrap gap-3">
           <button className="btn-ghost" onClick={backup}>
             <Download size={16} /> Download backup
+          </button>
+          <button className="btn-primary" onClick={publish}>
+            <Upload size={16} /> Publish to phones
           </button>
           <input
             ref={restoreRef}
