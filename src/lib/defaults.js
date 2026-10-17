@@ -9,7 +9,9 @@ export const DEFAULT_SETTINGS = {
     tagline: "Air Conditioning Sales & Service",
     address:
       "Shop No.1, 1st Floor, 'C' Block, Rifah Complex, New Sayaji Rao Road, Mysore-570001",
-    logo: "logoLeft: '', logoRight: '',",
+    logo: "",
+    logoLeft: "",
+    logoRight: "",
     color: "#0e7490",
   },
   timing: {
