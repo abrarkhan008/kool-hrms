@@ -11,7 +11,7 @@ import {
 } from "../lib/date.js";
 import { Card, PageHeader, Modal, Field, Pill } from "./ui.jsx";
 import { api, apiOn } from "../lib/api.js";
-
+import { getPosition } from "../lib/geo.js";
 export const WSTATUS = ["Not started", "In process", "Pending", "Completed"];
 const CLS = {
   "Not started": "bg-slate-100 text-slate-600",
@@ -67,26 +67,39 @@ export default function WorkSheet({ empId = null }) {
     ? staff.filter((e) => who === "all" || e.id === who)
     : staff.filter((e) => e.id === empId);
 
- const save = async () => {
-  if (!f.client.trim() || !f.work.trim()) return alert('Enter the client name and the complaint / service name')
-  let gps = f.gps
-  if (!f.id) {
-    try { const p = await getPosition(); gps = { lat: p.lat, lng: p.lng, time: new Date().toISOString() } } catch { /* no permission */ }
-  }
-  const id = f.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
-  const rec = { ...f, id, gps }
-  update((s) => {
-    s.work ||= []
-    if (f.id) s.work = s.work.map((w) => (w.id === f.id ? rec : w))
-    else s.work.push(rec)
-    return s
-  })
-  setF(null)
-  if (apiOn && empId) {
-    try { await api('/api/visit', { method: 'POST', body: { ...rec, empName: name(empId) } }) }
-    catch (e) { alert('Saved on this phone, but could not send to admin: ' + e.message) }
-  }
-}
+  const save = async () => {
+    if (!f.client.trim() || !f.work.trim())
+      return alert("Enter the client name and the complaint / service name");
+    let gps = f.gps;
+    if (!f.id) {
+      try {
+        const p = await getPosition();
+        gps = { lat: p.lat, lng: p.lng, time: new Date().toISOString() };
+      } catch {
+        /* no permission */
+      }
+    }
+    const id =
+      f.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const rec = { ...f, id, gps };
+    update((s) => {
+      s.work ||= [];
+      if (f.id) s.work = s.work.map((w) => (w.id === f.id ? rec : w));
+      else s.work.push(rec);
+      return s;
+    });
+    setF(null);
+    if (apiOn && empId) {
+      try {
+        await api("/api/visit", {
+          method: "POST",
+          body: { ...rec, empName: name(empId) },
+        });
+      } catch (e) {
+        alert("Saved on this phone, but could not send to admin: " + e.message);
+      }
+    }
+  };
   const del = (w) => {
     if (confirm("Delete this work entry?"))
       update((s) => {
@@ -259,7 +272,19 @@ export default function WorkSheet({ empId = null }) {
                       )}
                     </td>
                   )}
-                  <td className="td font-medium">{w.client}</td>
+                  <td className="td font-medium">
+                    {w.client}
+                    {w.gps && (
+                      <a
+                        className="block text-xs font-normal text-brand"
+                        target="_blank"
+                        rel="noreferrer"
+                        href={`https://www.google.com/maps?q=${w.gps.lat},${w.gps.lng}`}
+                      >
+                        📍 Map
+                      </a>
+                    )}
+                  </td>
                   <td className="td">{w.work}</td>
                   <td className="td">
                     <Pill cls={CLS[w.status]}>{w.status}</Pill>
