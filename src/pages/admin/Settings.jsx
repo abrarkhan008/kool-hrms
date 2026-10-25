@@ -8,7 +8,9 @@ import {
   ShieldCheck,
   MapPin,
   Plus,
+  Save,
 } from "lucide-react";
+import EmployeeLogins from "../../components/EmployeeLogins.jsx";
 import { useStore } from "../../lib/store.jsx";
 import { WEEKDAYS } from "../../lib/defaults.js";
 import { sha256, checkAdmin } from "../../lib/auth.js";
@@ -92,7 +94,7 @@ export default function Settings() {
     const img = new Image();
     const url = URL.createObjectURL(f);
     img.onload = () => {
-      const k = Math.min(1, 700 / Math.max(img.width, img.height));
+      const k = Math.min(1, 400 / Math.max(img.width, img.height));
       const c = document.createElement("canvas");
       c.width = Math.round(img.width * k);
       c.height = Math.round(img.height * k);
@@ -205,6 +207,17 @@ export default function Settings() {
     });
     setNote("Demo attendance added.");
   };
+  const saveAll = async () => {
+    try {
+      localStorage.setItem("kool_hrms_v1", JSON.stringify(state));
+    } catch {
+      return setNote(
+        "Could not save: browser storage is full. Use smaller logos.",
+      );
+    }
+    if (apiOn) await publish();
+    else setNote("Saved permanently on this computer.");
+  };
   const sites = S.sites || [];
   const geo = { autoIn: true, autoOut: true, ...(S.geo || {}) };
   const [locMsg, setLocMsg] = useState("");
@@ -278,8 +291,13 @@ export default function Settings() {
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        sub="Everything on this page is saved instantly. Change the name, logo, timings and salary rules here."
-      />
+        sub="Change the name, logo, timings and salary rules here, then press Save."
+      >
+        <button className="btn-primary" onClick={saveAll}>
+          <Save size={16} /> Save
+        </button>
+      </PageHeader>
+      {note && <p className="text-sm text-emerald-600">{note}</p>}
 
       <Section title="Website & branding">
         <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
@@ -838,6 +856,7 @@ export default function Settings() {
         </div>
       </Section>
 
+      <EmployeeLogins />
       <Section
         title="Data & backup"
         sub="Without a backend, data is stored in this browser only. Download a backup regularly."

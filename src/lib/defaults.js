@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS = {
     weekOffs: [0], // 0 = Sunday
     otEnabled: true,
   },
-  leave: { elPerMonth: 1, clPerMonth: 1 },
+  leave: { elPerYear: 12, clPerYear: 12 },
   salary: {
     pfEmployerPct: 12,
     esiEmployerPct: 3.25,
@@ -44,7 +44,7 @@ export const DEFAULT_SETTINGS = {
     kpiSlabs: { Excellent: 10, Good: 5, Average: 0, Poor: 0 }, // % of earned salary
   },
   holidays: [], // { date: 'YYYY-MM-DD', name }
-  admin: { username: "admin", passHash: "" }, // empty = default password admin123
+  admin: { username: "Ayubkhan@1234", passHash: "" },
 };
 
 const NAMES = [

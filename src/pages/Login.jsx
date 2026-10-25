@@ -5,6 +5,8 @@ import { checkAdmin, checkPin } from "../lib/auth.js";
 import Logo from "../components/Logo.jsx";
 import { Field } from "../components/ui.jsx";
 import { api, apiOn } from "../lib/api.js";
+const ADMIN_USER = "Ayubkhan@1234";
+const ADMIN_PASS = "Bluestar@1234";
 
 export default function Login() {
   const { state, login, update } = useStore();
@@ -20,7 +22,7 @@ export default function Login() {
     setErr("");
     setBusy(true);
     if (tab === "admin") {
-      if (await checkAdmin(state.settings, u || "admin", p))
+      if (u.trim() === ADMIN_USER && p === ADMIN_PASS)
         login({ role: "admin", name: "Administrator" });
       else setErr("Wrong username or password");
     } else {
@@ -47,11 +49,21 @@ export default function Login() {
                 ...r.employee,
               },
             ];
-            s.settings = {
-              ...s.settings,
-              ...r.settings,
-              admin: s.settings.admin,
-            };
+          const L = s.settings.company || {};
+const R = r.settings?.company || {};
+s.settings = {
+  ...s.settings,
+  ...r.settings,
+  company: {
+    ...L,
+    ...R,
+    logo: L.logo || R.logo || "",
+    logoLeft: L.logoLeft || R.logoLeft || "",
+    logoRight: L.logoRight || R.logoRight || "",
+  },
+  leave: { ...s.settings.leave, ...(r.settings?.leave || {}) },
+  admin: s.settings.admin,
+};
             return s;
           });
           ok = true;
@@ -73,7 +85,9 @@ export default function Login() {
         <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10" />
         <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/10" />
         <div className="relative">
-          <Logo light size={48} />
+          <div className="inline-block rounded-xl bg-white p-3">
+            <Logo size={48} />
+          </div>
         </div>
         <div className="relative">
           <h1 className="text-4xl font-bold leading-tight">{c.appName}</h1>
@@ -131,7 +145,7 @@ export default function Login() {
                 className="input"
                 value={u}
                 onChange={(e) => setU(e.target.value)}
-                placeholder={tab === "admin" ? "admin" : "e.g. KAC006"}
+                placeholder={tab === "admin" ? "Ayubkhan@1234" : "e.g. KAC006"}
                 autoFocus
               />
             </Field>
@@ -154,7 +168,7 @@ export default function Login() {
             </button>
           </div>
 
-          {!state.settings.admin.passHash && (
+          {/* {!state.settings.admin.passHash && (
             <p className="mt-6 rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500">
               Demo: Admin <b>admin / admin123</b> &nbsp;·&nbsp; Employee{" "}
               <b>KAC001 / 1234</b>
@@ -162,7 +176,7 @@ export default function Login() {
               (this hint disappears after you change the admin password in
               Settings)
             </p>
-          )}
+          )} */}
         </form>
       </div>
     </div>
