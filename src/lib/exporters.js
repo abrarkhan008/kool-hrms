@@ -26,6 +26,25 @@ const save = async (wb, name) => {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }),
   );
+  const toData = async (src) => {
+    if (!src || src.startsWith("data:")) return src;
+    try {
+      const blob = await (await fetch(src)).blob();
+      return await new Promise((res) => {
+        const f = new FileReader();
+        f.onload = () => res(f.result);
+        f.readAsDataURL(blob);
+      });
+    } catch {
+      return "";
+    }
+  };
+  const pdfSettings = async (settings) => {
+    const c = { ...settings.company };
+    for (const k of ["logo", "logoLeft", "logoRight"])
+      c[k] = await toData(c[k]);
+    return { ...settings, company: c };
+  };
   const a = document.createElement("a");
   a.href = url;
   a.download = name;
@@ -80,7 +99,8 @@ function putImg(doc, src, x, y, maxW, maxH) {
   }
 }
 
-export function slipPdf(rows, settings, filename) {
+export async function slipPdf(rows, settings0, filename) {
+  const settings = await pdfSettings(settings0);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const c = settings.company,
     col = rgbOf(c.color),
@@ -239,7 +259,8 @@ export function slipPdf(rows, settings, filename) {
 }
 
 /* ------------------------------ PDF: payroll summary (all employees) ------------------------------ */
-export function payrollPdf(rows, t, settings, mk) {
+export async function payrollPdf(rows, t, settings0, mk) {
+  const settings = await pdfSettings(settings0);
   const doc = new jsPDF({ unit: "mm", format: "a3", orientation: "landscape" });
   const y = pdfHeader(doc, settings, "SALARY STATEMENT", monthLabel(mk));
   autoTable(doc, {
@@ -822,4 +843,134 @@ export async function workXlsx(list, state, mk) {
     .forEach(([k, q]) => sp.addRow([...k.split("|"), q]));
   style(sp);
   await save(wb, `Work_${mk}.xlsx`);
+}
+/* ------------------------------ One employee: Excel ------------------------------ */
+export async function employeeXlsx(state, empId, mk) {
+  const s = state.settings;
+  const e = state.employees.find((x) => x.id === empId);
+  const sum = monthSummary(e, mk, s, state.attendance);
+  const brand = "FF" + hex(s.company.color);
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Attendance");
+  ws.columns = [
+    { width: 12 },
+    { width: 8 },
+    { width: 12 },
+    { width: 12 },
+    { width: 9 },
+    { width: 13 },
+    { width: 18 },
+  ];
+  ws.getCell("A1").value =
+    `${s.company.name} — ${e.name} (${e.id}) — ${monthLabel(mk)}`;
+  ws.getCell("A1").font = { bold: true, size: 14, color: { argb: brand } };
+  ws.getRow(3).values = [
+    "Date",
+    "Day",
+    "Punch in",
+    "Punch out",
+    "Hours",
+    "Overtime (h)",
+    "Status",
+  ];
+  for (let i = 1; i <= 7; i++) {
+    const c = ws.getCell(3, i);
+    c.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: brand } };
+    c.alignment = { horizontal: "center" };
+  }
+  sum.days.forEach((d) =>
+    ws.addRow([
+      d.date.split("-").reverse().join("-"),
+      dayName(d.date).slice(0, 3),
+      d.inTime ? timeLabel(d.inTime) : "",
+      d.outTime ? timeLabel(d.outTime) : "",
+      d.outTime ? round2(d.hours) : "",
+      d.otHours || "",
+      STATUS[d.code].label + (d.late ? " (Late)" : ""),
+    ]),
+  );
+  ws.addRow([]);
+  [
+    ["Present", sum.counts.P],
+    ["Half day", sum.counts.HD],
+    ["Absent", sum.counts.A],
+    ["EL", sum.counts.EL],
+    ["CL", sum.counts.CL],
+    ["Week off", sum.counts.WO],
+    ["Holiday", sum.counts.HOL],
+    ["Late marks", sum.late],
+    ["Overtime hours", sum.otHours],
+    ["Total hours", sum.hours],
+    ["Paid days", sum.paidDays],
+  ].forEach(([k, v]) => {
+    const r = ws.addRow([k, v]);
+    r.font = { bold: true };
+  });
+  await save(wb, `Attendance_${e.name.replace(/\s+/g, "_")}_${mk}.xlsx`);
+}
+
+/* ------------------------------ One employee: PDF ------------------------------ */
+export async function employeePdf(state, empId, mk) {
+  const s = await pdfSettings(state.settings);
+  const e = state.employees.find((x) => x.id === empId);
+  const sum = monthSummary(e, mk, s, state.attendance);
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const y = pdfHeader(doc, s, "ATTENDANCE SHEET", monthLabel(mk));
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text(`${e.name} (${e.id})  ${e.designation || ""}`, 14, y + 2);
+  autoTable(doc, {
+    startY: y + 6,
+    styles: { fontSize: 8, cellPadding: 1.4 },
+    headStyles: { fillColor: rgbOf(s.company.color), halign: "center" },
+    head: [
+      ["Date", "Day", "Punch in", "Punch out", "Hours", "Overtime", "Status"],
+    ],
+    body: sum.days.map((d) => [
+      d.date.split("-").reverse().join("-"),
+      dayName(d.date).slice(0, 3),
+      d.inTime ? timeLabel(d.inTime) : "",
+      d.outTime ? timeLabel(d.outTime) : "",
+      d.outTime ? round2(d.hours) : "",
+      d.otHours || "",
+      STATUS[d.code].label + (d.late ? " (Late)" : ""),
+    ]),
+  });
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 6,
+    styles: { fontSize: 8, halign: "center" },
+    headStyles: { fillColor: [226, 232, 240], textColor: 20 },
+    head: [
+      [
+        "Present",
+        "Half day",
+        "EL",
+        "CL",
+        "Absent",
+        "Week off",
+        "Holiday",
+        "Late",
+        "OT hrs",
+        "Total hrs",
+        "Paid days",
+      ],
+    ],
+    body: [
+      [
+        sum.counts.P,
+        sum.counts.HD,
+        sum.counts.EL,
+        sum.counts.CL,
+        sum.counts.A,
+        sum.counts.WO,
+        sum.counts.HOL,
+        sum.late,
+        sum.otHours,
+        sum.hours,
+        sum.paidDays,
+      ],
+    ],
+  });
+  doc.save(`Attendance_${e.name.replace(/\s+/g, "_")}_${mk}.pdf`);
 }

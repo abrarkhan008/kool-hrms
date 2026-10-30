@@ -7,6 +7,7 @@ import {
   useCallback,
 } from "react";
 import { EMPTY_STATE, DEFAULT_SETTINGS } from "./defaults.js";
+import { LOGOS } from "./logos.js";
 
 /**
  * ALL data lives in this browser (localStorage) - there is no backend.
@@ -44,12 +45,16 @@ const load = () => {
     return EMPTY_STATE(true);
   }
 };
+const withLogos = (st) => ({
+  ...st,
+  settings: { ...st.settings, company: { ...st.settings.company, ...LOGOS } },
+});
 
 const Ctx = createContext(null);
 export const useStore = () => useContext(Ctx);
 
 export function StoreProvider({ children }) {
-  const [state, setState] = useState(load);
+  const [state, setState] = useState(() => withLogos(load()));
   const [session, setSession] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem("kool_session"));

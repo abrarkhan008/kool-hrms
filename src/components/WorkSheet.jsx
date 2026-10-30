@@ -249,12 +249,16 @@ export default function WorkSheet({ empId = null }) {
             ))}
           </select>
         )}
-        <button className="btn-ghost" onClick={() => exportX(false)}>
-          <FileSpreadsheet size={16} /> Excel (month)
-        </button>
-        <button className="btn-ghost" onClick={() => exportX(true)}>
-          <FileSpreadsheet size={16} /> Excel (today)
-        </button>
+        {admin && (
+          <>
+            <button className="btn-ghost" onClick={() => exportX(false)}>
+              <FileSpreadsheet size={16} /> Excel (month)
+            </button>
+            <button className="btn-ghost" onClick={() => exportX(true)}>
+              <FileSpreadsheet size={16} /> Excel (today)
+            </button>
+          </>
+        )}
         <button
           className="btn-primary"
           onClick={() =>

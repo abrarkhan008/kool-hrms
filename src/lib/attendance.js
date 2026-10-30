@@ -162,7 +162,7 @@ export function monthSummary(emp, mk, settings, attendance) {
   paid +=
     Math.min(c.EL, settings.leave.elPerMonth ?? 1) +
     Math.min(c.CL, settings.leave.clPerMonth ?? 1);
-  paid += Math.min(c.EL, 1) + Math.min(c.CL, 1);
+
   const present = c.P + c.HD * 0.5;
   const attended = c.P + c.HD;
   return {

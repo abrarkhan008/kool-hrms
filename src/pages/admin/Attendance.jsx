@@ -28,6 +28,7 @@ import {
 } from "../../components/ui.jsx";
 import { Legend } from "../../components/MonthCalendar.jsx";
 import AdminPunch from "../../components/AdminPunch.jsx";
+import EmployeeSheet from "../../components/EmployeeSheet.jsx";
 
 const hhmm = (iso) => {
   if (!iso) return "";
@@ -148,7 +149,7 @@ export function DayEditor({ target, onClose }) {
 
 export default function Attendance() {
   const { state } = useStore();
-  const [tab, setTab] = useState("daily");
+  const [tab, setTab] = useState("employee");
   const [date, setDate] = useState(todayKey());
   const [mk, setMk] = useState(monthKey());
   const [target, setTarget] = useState(null);
@@ -185,6 +186,7 @@ export default function Attendance() {
       >
         <div className="flex rounded-lg bg-slate-200/70 p-1 text-sm">
           {[
+            ["employee", "One employee"],
             ["daily", "Daily"],
             ["monthly", "Monthly grid"],
           ].map(([k, l]) => (
@@ -211,9 +213,12 @@ export default function Attendance() {
           <FileSpreadsheet size={16} /> Excel
         </button>
       </PageHeader>
-      <div className="mb-6">
-        <AdminPunch />
-      </div>
+      {tab !== "employee" && (
+        <div className="mb-6">
+          <AdminPunch />
+        </div>
+      )}
+      {tab === "employee" && <EmployeeSheet mk={mk} />}
       {tab === "daily" && (
         <Card
           pad={false}
