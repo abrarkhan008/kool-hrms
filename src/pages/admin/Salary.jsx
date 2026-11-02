@@ -24,7 +24,16 @@ import { GRADE_CLS } from "../../lib/performance.js";
 import { Wallet, TrendingUp, Landmark, Hourglass } from "lucide-react";
 import { slipData, dmy } from "../../lib/slip.js";
 import { api, apiOn } from "../../lib/api.js";
-
+const EDITABLE = [
+  "Paid days",
+  "Overtime",
+  "Night stay",
+  "KPI",
+  "Other add.",
+  "PF",
+  "ESI",
+  "Other ded.",
+];
 export default function Salary() {
   const { state, update } = useStore();
   const [mk, setMk] = useState(monthKey());
@@ -151,7 +160,14 @@ export default function Salary() {
                     </div>
                   </td>
                   {cols.map(([h, f]) => (
-                    <td key={h} className="td">
+                    <td
+                      key={h}
+                      className={`td ${EDITABLE.includes(h) ? "cursor-pointer hover:bg-brand-soft" : ""}`}
+                      title={EDITABLE.includes(h) ? "Click to edit" : ""}
+                      onClick={() =>
+                        EDITABLE.includes(h) && setEditId(r.emp.id)
+                      }
+                    >
                       {f(r)}
                     </td>
                   ))}
@@ -165,7 +181,7 @@ export default function Salary() {
                     </button>
                     <button
                       className="rounded p-1.5 text-slate-500 hover:bg-slate-100"
-                      title="Night stay, bonus, advance…"
+                      title="Edit salary"
                       onClick={() => setEditId(r.emp.id)}
                     >
                       <SlidersHorizontal size={16} />
@@ -298,7 +314,32 @@ function ExtrasModal({ r, mk, onClose, update }) {
           />
         </Field>
 
-        {/* <Field label="Overtime hours override" hint={`Auto from attendance: ${r.otHours === Number(f.otHours) ? '' : ''}${fmtHours(r.otHours)}. Type a number to replace it.`}><Num value={f.otHours} onChange={(v) => set('otHours', v)} step="0.25" /></Field> */}
+        <Field label="Paid days (edit)" hint="Empty = automatic">
+          <Num
+            step="0.5"
+            value={f.paidDays}
+            onChange={(v) => set("paidDays", v)}
+          />
+        </Field>
+        <Field
+          label="Overtime hours (edit)"
+          hint="Empty = automatic from attendance"
+        >
+          <Num
+            step="0.25"
+            value={f.otHours}
+            onChange={(v) => set("otHours", v)}
+          />
+        </Field>
+        <Field label="KPI incentive amount (₹)" hint="Empty = automatic">
+          <Num value={f.kpiAmt} onChange={(v) => set("kpiAmt", v)} />
+        </Field>
+        <Field label="PF amount (₹)" hint="Empty = automatic">
+          <Num value={f.pfAmt} onChange={(v) => set("pfAmt", v)} />
+        </Field>
+        <Field label="ESI amount (₹)" hint="Empty = automatic">
+          <Num value={f.esiAmt} onChange={(v) => set("esiAmt", v)} />
+        </Field>
       </div>
     </Modal>
   );

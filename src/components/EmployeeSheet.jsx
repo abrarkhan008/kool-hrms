@@ -10,6 +10,7 @@ import {
 } from "../lib/attendance.js";
 import { todayKey, timeLabel, fmtHours, dayName } from "../lib/date.js";
 import { Card, StatusBadge, Pill } from "./ui.jsx";
+import TimeAmPm from "./TimeAmPm.jsx";
 
 const hhmm = (iso) => {
   if (!iso) return "";
@@ -55,7 +56,13 @@ export default function EmployeeSheet({ mk }) {
     update((s) => {
       const day = (s.attendance[date] ||= {});
       const r = { ...(day[emp.id] || {}) };
-      if (value) r[field] = field === "status" ? value : toIso(date, value);
+      if (value !== "" && value != null)
+        r[field] =
+          field === "status"
+            ? value
+            : field === "ot"
+              ? Number(value)
+              : toIso(date, value);
       else delete r[field];
       if (Object.keys(r).length) day[emp.id] = r;
       else delete day[emp.id];
@@ -170,26 +177,20 @@ export default function EmployeeSheet({ mk }) {
                     </td>
                     <td className="td">{dayName(d.date).slice(0, 3)}</td>
                     <td className="td">
-                      <input
-                        type="time"
-                        className="input w-32"
+                      <TimeAmPm
                         key={d.date + "in" + d.inTime}
-                        defaultValue={hhmm(d.inTime)}
-                        onBlur={(ev) =>
-                          ev.target.value !== hhmm(d.inTime) &&
-                          setField(d.date, "in", ev.target.value)
+                        value={hhmm(d.inTime)}
+                        onChange={(v) =>
+                          v !== hhmm(d.inTime) && setField(d.date, "in", v)
                         }
                       />
                     </td>
                     <td className="td">
-                      <input
-                        type="time"
-                        className="input w-32"
+                      <TimeAmPm
                         key={d.date + "out" + d.outTime}
-                        defaultValue={hhmm(d.outTime)}
-                        onBlur={(ev) =>
-                          ev.target.value !== hhmm(d.outTime) &&
-                          setField(d.date, "out", ev.target.value)
+                        value={hhmm(d.outTime)}
+                        onChange={(v) =>
+                          v !== hhmm(d.outTime) && setField(d.date, "out", v)
                         }
                       />
                     </td>
@@ -197,11 +198,19 @@ export default function EmployeeSheet({ mk }) {
                       {d.outTime ? fmtHours(d.hours) : "—"}
                     </td>
                     <td className="td">
-                      {d.otHours ? (
-                        <b className="text-brand">{fmtHours(d.otHours)}</b>
-                      ) : (
-                        "—"
-                      )}
+                      <input
+                        type="number"
+                        step="0.25"
+                        min="0"
+                        placeholder="auto"
+                        className="input w-24"
+                        key={d.date + "ot" + d.otHours}
+                        defaultValue={d.otHours || ""}
+                        onBlur={(ev) =>
+                          ev.target.value !== String(d.otHours || "") &&
+                          setField(d.date, "ot", ev.target.value)
+                        }
+                      />
                     </td>
                     <td className="td">
                       <StatusBadge code={d.code} />{" "}

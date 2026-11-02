@@ -99,7 +99,8 @@ export function dayInfo(emp, date, settings, attendance) {
     }
     info.otHours = round2(info.otHours);
   }
-
+  if (rec.ot !== undefined && rec.ot !== "")
+    info.otHours = round2(Number(rec.ot) || 0);
   if (rec.status) {
     info.code = rec.status;
     return info;

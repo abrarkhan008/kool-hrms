@@ -17,7 +17,10 @@ export function calcSalary(emp, mk, state) {
   const ctc = num(emp.ctc);
   const perDay = ctc / basis;
   const perHour = perDay / (settings.timing.dutyHours || 9);
-  const paidDays = Math.min(sum.paidDays, basis === 30 ? 30 : daysInMonth(mk));
+  const paidDays =
+    inp.paidDays !== undefined && inp.paidDays !== ""
+      ? num(inp.paidDays)
+      : Math.min(sum.paidDays, basis === 30 ? 30 : daysInMonth(mk));
   const earned = perDay * paidDays;
 
   // salary structure (as % of CTC, applied on earned salary)
@@ -49,14 +52,21 @@ export function calcSalary(emp, mk, state) {
       : perf.grade
         ? s.kpiSlabs[perf.grade] || 0
         : 0;
-  const kpi = (earned * kpiPct) / 100;
+  const kpi =
+    inp.kpiAmt !== undefined && inp.kpiAmt !== ""
+      ? num(inp.kpiAmt)
+      : (earned * kpiPct) / 100;
   const gross = earned + otAmount + nightStayAmt + bike + bonus + other + kpi;
 
   // deductions
   const pfBase = s.pfCeilingOn ? Math.min(basic, s.pfCeiling) : basic;
-  const pf = emp.pf ? (pfBase * s.pfPct) / 100 : 0;
+  const pfAuto = emp.pf ? (pfBase * s.pfPct) / 100 : 0;
+  const pf =
+    inp.pfAmt !== undefined && inp.pfAmt !== "" ? num(inp.pfAmt) : pfAuto;
   const esiApplies = emp.esi && ctc <= s.esiCeiling;
-  const esi = esiApplies ? ((earned + otAmount) * s.esiPct) / 100 : 0;
+  const esiAuto = esiApplies ? ((earned + otAmount) * s.esiPct) / 100 : 0;
+  const esi =
+    inp.esiAmt !== undefined && inp.esiAmt !== "" ? num(inp.esiAmt) : esiAuto;
 
   const pfEmployer = emp.pf ? (pfBase * (s.pfEmployerPct ?? 12)) / 100 : 0;
   const esiEmployer = esiApplies

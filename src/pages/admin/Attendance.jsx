@@ -29,6 +29,7 @@ import {
 import { Legend } from "../../components/MonthCalendar.jsx";
 import AdminPunch from "../../components/AdminPunch.jsx";
 import EmployeeSheet from "../../components/EmployeeSheet.jsx";
+import TimeAmPm from "../../components/TimeAmPm.jsx";
 
 const hhmm = (iso) => {
   if (!iso) return "";
@@ -118,19 +119,17 @@ export function DayEditor({ target, onClose }) {
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Punch in">
-            <input
-              type="time"
-              className="input"
+            <TimeAmPm
+              key={key + "i"}
               value={f.in}
-              onChange={(e) => setF({ ...f, in: e.target.value })}
+              onChange={(v) => setF((x) => ({ ...x, in: v }))}
             />
           </Field>
           <Field label="Punch out">
-            <input
-              type="time"
-              className="input"
+            <TimeAmPm
+              key={key + "o"}
               value={f.out}
-              onChange={(e) => setF({ ...f, out: e.target.value })}
+              onChange={(v) => setF((x) => ({ ...x, out: v }))}
             />
           </Field>
         </div>
