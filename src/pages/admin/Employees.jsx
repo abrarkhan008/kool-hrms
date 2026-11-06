@@ -14,6 +14,7 @@ import {
   Pill,
   Toggle,
 } from "../../components/ui.jsx";
+import { BANK_SEED } from "../../lib/bankSeed.js";
 
 const blank = (n) => ({
   id: `KAC${String(n).padStart(3, "0")}`,
@@ -71,6 +72,18 @@ export default function Employees() {
       return s;
     });
     setEdit(null);
+  };
+  const fillBank = () => {
+    if (!confirm("Fill IFSC / account / bank name from your Excel sheet?"))
+      return;
+    const norm = (x) => x.toUpperCase().replace(/[^A-Z]/g, "");
+    update((s) => {
+      s.employees = s.employees.map((e) => {
+        const b = BANK_SEED[norm(e.name)];
+        return b ? { ...e, ...b } : e;
+      });
+      return s;
+    });
   };
   const remove = (e) => {
     if (
@@ -136,6 +149,9 @@ export default function Employees() {
           }}
         >
           <Plus size={16} /> Add employee
+        </button>
+        <button className="btn-ghost" onClick={fillBank}>
+          Fill bank details from sheet
         </button>
       </PageHeader>
       <Card pad={false}>
@@ -326,6 +342,13 @@ export default function Employees() {
                 className="input"
                 value={edit.acNo || ""}
                 onChange={(e) => set("acNo", e.target.value)}
+              />
+            </Field>
+            <Field label="IFSC code">
+              <input
+                className="input"
+                value={edit.ifsc || ""}
+                onChange={(e) => set("ifsc", e.target.value.toUpperCase())}
               />
             </Field>
             <Field label="UAN number">

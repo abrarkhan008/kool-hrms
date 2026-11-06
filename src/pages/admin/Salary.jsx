@@ -24,6 +24,9 @@ import { GRADE_CLS } from "../../lib/performance.js";
 import { Wallet, TrendingUp, Landmark, Hourglass } from "lucide-react";
 import { slipData, dmy } from "../../lib/slip.js";
 import { api, apiOn } from "../../lib/api.js";
+import { Download } from "lucide-react";
+import { bikeMonthAmount } from "../../lib/bike.js";
+
 const EDITABLE = [
   "Paid days",
   "Overtime",
@@ -49,6 +52,16 @@ export default function Salary() {
     if (kind === "pdf") x.payrollPdf(rows, t, state.settings, mk);
     if (kind === "slips")
       x.slipPdf(rows, state.settings, `Salary_Slips_${mk}.pdf`);
+    if (kind === "full")
+      (await import("../../lib/exportsBike.js")).fullReportPdf(state, mk);
+  };
+  const dlSlip = async (r) => {
+    const { slipPdf } = await import("../../lib/exporters.js");
+    slipPdf(
+      [r],
+      state.settings,
+      `Salary_Slip_${r.emp.name.replace(/\s+/g, "_")}_${r.mk}.pdf`,
+    );
   };
   const edit = rows.find((r) => r.emp.id === editId);
   const view = rows.find((r) => r.emp.id === viewId);
@@ -74,8 +87,15 @@ export default function Salary() {
         r.bike + r.bonus + r.other ? inr(r.bike + r.bonus + r.other) : "—",
     ],
     ["Gross", (r) => <b>{inr(r.gross)}</b>],
-    ["PF", (r) => (r.pf ? inr(r.pf) : "—")],
-    ["ESI", (r) => (r.esi ? inr(r.esi) : "—")],
+    [
+      "PF",
+      (r) => (r.pfOn ? inr(r.pf) : <span className="text-slate-400">No</span>),
+    ],
+    [
+      "ESI",
+      (r) =>
+        r.esiOn ? inr(r.esi) : <span className="text-slate-400">No</span>,
+    ],
     [
       "Other ded.",
       (r) => (r.advance + r.otherDed ? inr(r.advance + r.otherDed) : "—"),
@@ -96,11 +116,13 @@ export default function Salary() {
         <button className="btn-ghost" onClick={() => exp("pdf")}>
           <FileText size={16} /> PDF
         </button>
+        <button className="btn-ghost" onClick={() => exp("full")}>
+          <Files size={16} /> Full PDF (Bike + Salary + Bank)
+        </button>
         <button className="btn-primary" onClick={() => exp("slips")}>
           <Files size={16} /> All salary slips
         </button>
       </PageHeader>
-
       {partial && (
         <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <Info size={18} className="mt-0.5 shrink-0" /> {monthLabel(mk)} is not
@@ -108,7 +130,6 @@ export default function Salary() {
           figures are a preview until the month ends.
         </div>
       )}
-
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={Wallet} label="Total CTC" value={inr(t.ctc)} />
         <Stat
@@ -130,7 +151,6 @@ export default function Salary() {
           value={inr(t.net)}
         />
       </div>
-
       <Card pad={false}>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -149,7 +169,16 @@ export default function Salary() {
               {rows.map((r) => (
                 <tr key={r.emp.id} className="hover:bg-slate-50">
                   <td className="td">
-                    <div className="font-medium">{r.emp.name}</div>
+                    <div className="flex items-center gap-2 font-medium">
+                      {r.emp.name}
+                      <button
+                        title="Download salary slip PDF"
+                        className="rounded p-1 text-brand hover:bg-brand-soft"
+                        onClick={() => dlSlip(r)}
+                      >
+                        <Download size={15} />
+                      </button>
+                    </div>
                     <div className="text-xs text-slate-400">
                       {r.emp.id}
                       {r.grade && (
@@ -211,15 +240,20 @@ export default function Salary() {
           </table>
         </div>
       </Card>
-
       <ExtrasModal
         r={edit}
+        bikeAmt={edit ? bikeMonthAmount(state, edit.emp, mk) : 0}
         mk={mk}
         onClose={() => setEditId(null)}
         update={update}
       />
+
       <SlipModal
         r={view}
+        onEdit={() => {
+          setEditId(view.emp.id);
+          setViewId(null);
+        }}
         onClose={() => setViewId(null)}
         settings={state.settings}
       />
@@ -227,7 +261,7 @@ export default function Salary() {
   );
 }
 
-function ExtrasModal({ r, mk, onClose, update }) {
+function ExtrasModal({ r, mk, onClose, update, bikeAmt }) {
   const [f, setF] = useState({});
   const [k, setK] = useState("");
   if (!r) {
@@ -285,7 +319,7 @@ function ExtrasModal({ r, mk, onClose, update }) {
         >
           <Num value={f.nightStays} onChange={(v) => set("nightStays", v)} />
         </Field>
-        <Field label="Petrol allowance (₹)">
+        <Field label="Petrol allowance (₹) hint={Bike sheet total this month: ₹${bikeAmt}}">
           <Num value={f.bike} onChange={(v) => set("bike", v)} />
         </Field>
         <Field label="Bonus (₹)">
@@ -339,6 +373,49 @@ function ExtrasModal({ r, mk, onClose, update }) {
         </Field>
         <Field label="ESI amount (₹)" hint="Empty = automatic">
           <Num value={f.esiAmt} onChange={(v) => set("esiAmt", v)} />
+        </Field>
+        <Field label="PF deducted?" hint="Auto = follows Employees page">
+          <select
+            className="input"
+            value={f.pfOn || ""}
+            onChange={(e) => set("pfOn", e.target.value)}
+          >
+            <option value="">Auto</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </Field>
+        <Field label="ESI deducted?" hint="Auto = follows Employees page">
+          <select
+            className="input"
+            value={f.esiOn || ""}
+            onChange={(e) => set("esiOn", e.target.value)}
+          >
+            <option value="">Auto</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </Field>
+        <Field label="Earned salary (₹)" hint="Empty = automatic">
+          <Num value={f.earnedAmt} onChange={(v) => set("earnedAmt", v)} />
+        </Field>
+        <Field label="Basic (₹)" hint="Empty = automatic">
+          <Num value={f.basicAmt} onChange={(v) => set("basicAmt", v)} />
+        </Field>
+        <Field label="HRA (₹)" hint="Empty = automatic">
+          <Num value={f.hraAmt} onChange={(v) => set("hraAmt", v)} />
+        </Field>
+        <Field label="Conveyance (₹)" hint="Empty = automatic">
+          <Num value={f.convAmt} onChange={(v) => set("convAmt", v)} />
+        </Field>
+        <Field label="Special allowance (₹)" hint="Empty = automatic">
+          <Num value={f.specialAmt} onChange={(v) => set("specialAmt", v)} />
+        </Field>
+        <Field label="Overtime amount (₹)" hint="Empty = automatic">
+          <Num value={f.otAmt} onChange={(v) => set("otAmt", v)} />
+        </Field>
+        <Field label="Night stay amount (₹)" hint="Empty = nights × day salary">
+          <Num value={f.nightAmt} onChange={(v) => set("nightAmt", v)} />
         </Field>
       </div>
     </Modal>
@@ -483,7 +560,7 @@ export function SlipBody({ r, settings }) {
   );
 }
 
-function SlipModal({ r, onClose, settings }) {
+function SlipModal({ r, onClose, settings, onEdit }) {
   if (!r) return null;
   const dl = async () => {
     const { slipPdf } = await import("../../lib/exporters.js");
@@ -500,9 +577,14 @@ function SlipModal({ r, onClose, settings }) {
       wide
       title={`Salary slip · ${r.emp.name} · ${monthLabel(r.mk)}`}
       footer={
-        <button className="btn-primary" onClick={dl}>
-          <FileText size={16} /> Download PDF
-        </button>
+        <>
+          <button className="btn-ghost" onClick={onEdit}>
+            Edit slip
+          </button>
+          <button className="btn-primary" onClick={dl}>
+            <FileText size={16} /> Download PDF
+          </button>
+        </>
       }
     >
       <SlipBody r={r} settings={settings} />

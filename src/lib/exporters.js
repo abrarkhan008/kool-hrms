@@ -7,18 +7,36 @@ import { monthSummary, dayInfo, STATUS } from "./attendance.js";
 import { totals } from "./payroll.js";
 import { slipData, dmy } from "./slip.js";
 
-const rs = (n) =>
+export const rs = (n) =>
   "Rs. " +
   (Math.round((Number(n) || 0) * 100) / 100).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 const hex = (c) => (c || "#0e7490").replace("#", "").toUpperCase();
-const rgbOf = (c) => {
+export const rgbOf = (c) => {
   const n = parseInt(hex(c), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 };
 
+const toData = async (src) => {
+  if (!src || src.startsWith("data:")) return src;
+  try {
+    const blob = await (await fetch(src)).blob();
+    return await new Promise((res) => {
+      const f = new FileReader();
+      f.onload = () => res(f.result);
+      f.readAsDataURL(blob);
+    });
+  } catch {
+    return "";
+  }
+};
+export const pdfSettings = async (settings) => {
+  const c = { ...settings.company };
+  for (const k of ["logo", "logoLeft", "logoRight"]) c[k] = await toData(c[k]);
+  return { ...settings, company: c };
+};
 const save = async (wb, name) => {
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(
@@ -26,25 +44,6 @@ const save = async (wb, name) => {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }),
   );
-  const toData = async (src) => {
-    if (!src || src.startsWith("data:")) return src;
-    try {
-      const blob = await (await fetch(src)).blob();
-      return await new Promise((res) => {
-        const f = new FileReader();
-        f.onload = () => res(f.result);
-        f.readAsDataURL(blob);
-      });
-    } catch {
-      return "";
-    }
-  };
-  const pdfSettings = async (settings) => {
-    const c = { ...settings.company };
-    for (const k of ["logo", "logoLeft", "logoRight"])
-      c[k] = await toData(c[k]);
-    return { ...settings, company: c };
-  };
   const a = document.createElement("a");
   a.href = url;
   a.download = name;
@@ -53,7 +52,7 @@ const save = async (wb, name) => {
 };
 
 /* ------------------------------ PDF: header used by every PDF ------------------------------ */
-function pdfHeader(doc, settings, title, sub) {
+export function pdfHeader(doc, settings, title, sub) {
   const c = settings.company,
     w = doc.internal.pageSize.getWidth();
   const col = rgbOf(c.color);

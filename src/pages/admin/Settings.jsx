@@ -807,7 +807,40 @@ export default function Settings() {
           ))}
         </div>
       </Section>
-
+      <Section
+        title="Bank letter & bike rate"
+        sub="Used in the bank transfer PDF and bike slips."
+      >
+        <div className={grid}>
+          <Field label="Bank name">
+            <input
+              className="input"
+              value={S.company.bankName ?? "Union Bank of India"}
+              onChange={(e) => set("company", "bankName", e.target.value)}
+            />
+          </Field>
+          <Field label="Branch">
+            <input
+              className="input"
+              value={S.company.bankBranch ?? "Bannimantap Branch, Mysuru"}
+              onChange={(e) => set("company", "bankBranch", e.target.value)}
+            />
+          </Field>
+          <Field label="Our account number">
+            <input
+              className="input"
+              value={S.company.bankAcNo ?? "510101003200174"}
+              onChange={(e) => set("company", "bankAcNo", e.target.value)}
+            />
+          </Field>
+          <Field label="Bike rate per KM (₹)">
+            <Num
+              value={S.salary.bikeRate ?? 3}
+              onChange={(v) => set("salary", "bikeRate", v)}
+            />
+          </Field>
+        </div>
+      </Section>
       <Section title="Admin password">
         <div className="grid max-w-xl gap-4 sm:grid-cols-2">
           <Field label="Admin username">

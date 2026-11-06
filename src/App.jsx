@@ -14,6 +14,7 @@ import Settings from "./pages/admin/Settings.jsx";
 import Punch from "./pages/employee/Punch.jsx";
 import Work from "./pages/admin/Work.jsx";
 import Locations from "./pages/admin/Locations.jsx";
+import Bike from "./pages/admin/Bike.jsx";
 
 // "#0e7490" -> "14 116 144"
 const rgb = (hex) => {
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/lookup" element={<Lookup />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/bike" element={<Bike />} />
         <Route path="/work" element={<Work />} />
         <Route path="/locations" element={<Locations />} />
         <Route path="*" element={<Navigate to="/" replace />} />

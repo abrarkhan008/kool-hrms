@@ -21,25 +21,27 @@ export function calcSalary(emp, mk, state) {
     inp.paidDays !== undefined && inp.paidDays !== ""
       ? num(inp.paidDays)
       : Math.min(sum.paidDays, basis === 30 ? 30 : daysInMonth(mk));
-  const earned = perDay * paidDays;
-
-  // salary structure (as % of CTC, applied on earned salary)
+  const ov = (key, auto) =>
+    inp[key] !== undefined && inp[key] !== "" ? num(inp[key]) : auto;
+  const earnedBase = ov("earnedAmt", perDay * paidDays);
   const pctSpecial = Math.max(0, 100 - s.basicPct - s.hraPct - s.conveyancePct);
-  const basic = (earned * s.basicPct) / 100;
-  const hra = (earned * s.hraPct) / 100;
-  const conveyance = (earned * s.conveyancePct) / 100;
-  const special = (earned * pctSpecial) / 100;
+  const basic = ov("basicAmt", (earnedBase * s.basicPct) / 100);
+  const hra = ov("hraAmt", (earnedBase * s.hraPct) / 100);
+  const conveyance = ov("convAmt", (earnedBase * s.conveyancePct) / 100);
+  const special = ov("specialAmt", (earnedBase * pctSpecial) / 100);
+  const earned = basic + hra + conveyance + special;
 
   // additions
   const otHours =
     inp.otHours !== undefined && inp.otHours !== ""
       ? num(inp.otHours)
       : sum.otHours;
-  const otAmount = settings.timing.otEnabled
-    ? perHour * otHours * s.otMultiplier
-    : 0;
+  const otAmount = ov(
+    "otAmt",
+    settings.timing.otEnabled ? perHour * otHours * s.otMultiplier : 0,
+  );
   const nightStays = num(inp.nightStays);
-  const nightStayAmt = perDay * s.nightStayDays * nightStays;
+  const nightStayAmt = ov("nightAmt", perDay * s.nightStayDays * nightStays);
   const bike = num(inp.bike),
     bonus = num(inp.bonus),
     other = num(inp.other);
@@ -60,15 +62,17 @@ export function calcSalary(emp, mk, state) {
 
   // deductions
   const pfBase = s.pfCeilingOn ? Math.min(basic, s.pfCeiling) : basic;
-  const pfAuto = emp.pf ? (pfBase * s.pfPct) / 100 : 0;
+  const pfOn = inp.pfOn ? inp.pfOn === "yes" : !!emp.pf;
+  const esiOn = inp.esiOn ? inp.esiOn === "yes" : !!emp.esi;
+  const pfAuto = pfOn ? (pfBase * s.pfPct) / 100 : 0;
   const pf =
     inp.pfAmt !== undefined && inp.pfAmt !== "" ? num(inp.pfAmt) : pfAuto;
-  const esiApplies = emp.esi && ctc <= s.esiCeiling;
+  const esiApplies = esiOn && ctc <= s.esiCeiling;
   const esiAuto = esiApplies ? ((earned + otAmount) * s.esiPct) / 100 : 0;
   const esi =
     inp.esiAmt !== undefined && inp.esiAmt !== "" ? num(inp.esiAmt) : esiAuto;
 
-  const pfEmployer = emp.pf ? (pfBase * (s.pfEmployerPct ?? 12)) / 100 : 0;
+  const pfEmployer = pfOn ? (pfBase * (s.pfEmployerPct ?? 12)) / 100 : 0;
   const esiEmployer = esiApplies
     ? ((earned + otAmount) * (s.esiEmployerPct ?? 3.25)) / 100
     : 0;
@@ -126,6 +130,8 @@ export function calcSalary(emp, mk, state) {
     otherDed,
     deductions,
     net,
+    pfOn,
+    esiOn,
     inputs: inp,
   };
 }

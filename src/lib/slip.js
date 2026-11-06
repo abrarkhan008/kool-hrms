@@ -63,14 +63,16 @@ export function slipData(r, settings) {
   const S = settings.salary;
   const spPct = Math.max(0, 100 - S.basicPct - S.hraPct - S.conveyancePct);
   const full = (p) => (r.ctc * p) / 100;
-  const additional = r.otAmount + r.nightStayAmt + r.kpi + r.bonus + r.other;
+  const additional = r.kpi + r.bonus + r.other;
   const earn = [
     ["Basic", full(S.basicPct), r.basic],
     ["HRA", full(S.hraPct), r.hra],
     ["Conveyance Allowance", full(S.conveyancePct), r.conveyance],
     ["Special Allowance", full(spPct), r.special],
     ["Petrol Allowance", null, r.bike],
-    ["System Overtime / Additional", null, additional],
+    ["Overtime", null, r.otAmount],
+    ["Night Stay", null, r.nightStayAmt],
+    ["KPI / Bonus / Other", null, additional],
   ];
   const dl = [
     ["PF", r.pf],

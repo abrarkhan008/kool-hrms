@@ -178,7 +178,30 @@ export default function WorkSheet({ empId = null }) {
       }
     }
   };
-
+  const clearWork = async (all) => {
+    const list = (state.work || []).filter(
+      (w) =>
+        (all || w.date.startsWith(mk)) && (who === "all" || w.empId === who),
+    );
+    if (!list.length) return alert("Nothing to clear");
+    if (
+      !confirm(
+        `Delete ${list.length} work entries${all ? "" : " of " + monthLabel(mk)}? This cannot be undone.`,
+      )
+    )
+      return;
+    const ids = new Set(list.map((w) => w.id));
+    update((s) => {
+      s.work = (s.work || []).filter((w) => !ids.has(w.id));
+      return s;
+    });
+    if (apiOn && askKey())
+      await Promise.allSettled(
+        list.map((w) =>
+          api(`/api/visit/${w.id}`, { method: "DELETE", admin: true }),
+        ),
+      );
+  };
   const reassign = (w, to) => {
     const rec = { ...w, empId: to, from: w.from || w.empId };
     update((s) => {
@@ -256,6 +279,12 @@ export default function WorkSheet({ empId = null }) {
             </button>
             <button className="btn-ghost" onClick={() => exportX(true)}>
               <FileSpreadsheet size={16} /> Excel (today)
+            </button>
+                        <button className="btn-danger" onClick={() => clearWork(false)}>
+              <Trash2 size={16} /> Clear month
+            </button>
+            <button className="btn-danger" onClick={() => clearWork(true)}>
+              <Trash2 size={16} /> Clear all
             </button>
           </>
         )}
