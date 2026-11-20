@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Bike,
   MapPin,
+  Package,
   Settings as Cog,
   LogOut,
   Menu,
@@ -31,6 +32,7 @@ const NAV = [
   ["/bike", "Bike reading", Bike],
   ["/work", "Work process", ClipboardList],
   ["/locations", "Live location", MapPin],
+  ["/materials", "Materials", Package],
   ["/settings", "Settings", Cog],
 ];
 

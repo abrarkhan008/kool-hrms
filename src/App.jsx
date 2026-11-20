@@ -1,5 +1,11 @@
-import { useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { useStore } from "./lib/store.jsx";
 import Layout from "./components/Layout.jsx";
 import Login from "./pages/Login.jsx";
@@ -15,7 +21,7 @@ import Punch from "./pages/employee/Punch.jsx";
 import Work from "./pages/admin/Work.jsx";
 import Locations from "./pages/admin/Locations.jsx";
 import Bike from "./pages/admin/Bike.jsx";
-
+import Materials from "./pages/admin/Materials.jsx";
 // "#0e7490" -> "14 116 144"
 const rgb = (hex) => {
   const n = parseInt(hex.replace("#", ""), 16);
@@ -27,6 +33,10 @@ const soften = (c) => c.map((v) => Math.round(v + (255 - v) * 0.92));
 export default function App() {
   const { state, session } = useStore();
   const { color, appName, name } = state.settings.company;
+  const loc = useLocation();
+  const nav = useNavigate();
+  const [startPage] = useState(() => localStorage.getItem("last_page"));
+  const isAdmin = session && session.role !== "employee";
 
   // Apply brand colour + website title from Settings
   useEffect(() => {
@@ -37,6 +47,18 @@ export default function App() {
     r.setProperty("--brand-soft", soften(c).join(" "));
     document.title = `${name} · ${appName}`;
   }, [color, appName, name]);
+
+  // open the page you were on last time
+  useEffect(() => {
+    if (isAdmin && startPage && startPage !== "/" && loc.pathname === "/")
+      nav(startPage, { replace: true });
+    // eslint-disable-next-line
+  }, []);
+
+  // remember the page you are on
+  useEffect(() => {
+    if (isAdmin) localStorage.setItem("last_page", loc.pathname);
+  }, [loc.pathname, isAdmin]);
 
   if (!session) return <Login />;
 
@@ -65,10 +87,10 @@ export default function App() {
         <Route path="/performance" element={<Performance />} />
         <Route path="/lookup" element={<Lookup />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/bike" element={<Bike />} />
         <Route path="/work" element={<Work />} />
         <Route path="/locations" element={<Locations />} />
+        <Route path="/materials" element={<Materials />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

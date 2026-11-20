@@ -94,8 +94,12 @@ export function dayInfo(emp, date, settings, attendance) {
   if (t.otEnabled && rec.in && rec.out) {
     if (restDay) info.otHours = info.hours;
     else {
-      const mins = minutesOfIso(rec.out) - minutesOf(t.otStart);
-      info.otHours = mins >= t.minOtMinutes ? mins / 60 : 0;
+      const after = minutesOfIso(rec.out) - minutesOf(t.otStart);
+      const before = minutesOf(t.loginTime) - minutesOfIso(rec.in);
+      let mins = 0;
+      if (after >= t.minOtMinutes) mins += after;
+      if (before >= t.minOtMinutes) mins += before;
+      info.otHours = mins / 60;
     }
     info.otHours = round2(info.otHours);
   }

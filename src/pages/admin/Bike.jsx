@@ -94,12 +94,12 @@ export default function Bike() {
         </div>
         <button
           className="btn-ghost"
-          onClick={() =>
-            pdf(
-              "slips",
-              rows.filter((r) => r.km || r.maint),
-            )
-          }
+          onClick={() => {
+            const list = rows;
+            alert("Making " + list.length + " slips");
+
+            pdf("slips", list);
+          }}
         >
           <Files size={16} /> All bike slips
         </button>

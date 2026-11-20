@@ -29,7 +29,8 @@ import {
 import { Legend } from "../../components/MonthCalendar.jsx";
 import AdminPunch from "../../components/AdminPunch.jsx";
 import EmployeeSheet from "../../components/EmployeeSheet.jsx";
-import TimeAmPm from "../../components/TimeAmPm.jsx";
+import TimeType from "../../components/TimeType.jsx";
+import usePersist from "../../lib/usePersist.js";
 
 const hhmm = (iso) => {
   if (!iso) return "";
@@ -42,7 +43,12 @@ const toIso = (date, t) => {
   const [h, mi] = t.split(":").map(Number);
   return new Date(y, m - 1, d, h, mi).toISOString();
 };
-
+const ResultBadge = ({ d }) =>
+  d.code === "A" && !d.inTime && !d.manual ? (
+    <span className="inline-block h-5 w-6" />
+  ) : (
+    <StatusBadge code={d.code} />
+  );
 export function DayEditor({ target, onClose }) {
   const { state, update } = useStore();
   const [f, setF] = useState(null);
@@ -119,14 +125,16 @@ export function DayEditor({ target, onClose }) {
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Punch in">
-            <TimeAmPm
+            <TimeType
+              ap="AM"
               key={key + "i"}
               value={f.in}
               onChange={(v) => setF((x) => ({ ...x, in: v }))}
             />
           </Field>
           <Field label="Punch out">
-            <TimeAmPm
+            <TimeType
+              ap="PM"
               key={key + "o"}
               value={f.out}
               onChange={(v) => setF((x) => ({ ...x, out: v }))}
@@ -148,7 +156,7 @@ export function DayEditor({ target, onClose }) {
 
 export default function Attendance() {
   const { state } = useStore();
-  const [tab, setTab] = useState("employee");
+  const [tab, setTab] = usePersist("att_tab", "employee");
   const [date, setDate] = useState(todayKey());
   const [mk, setMk] = useState(monthKey());
   const [target, setTarget] = useState(null);
@@ -283,7 +291,7 @@ export default function Attendance() {
                       )}
                     </td>
                     <td className="td">
-                      <StatusBadge code={d.code} />{" "}
+                      <ResultBadge d={d} />{" "}
                       {d.manual && (
                         <span className="text-[10px] text-slate-400">
                           manual
@@ -365,7 +373,7 @@ export default function Attendance() {
                               : "")
                           }
                         >
-                          <StatusBadge code={d.code} />
+                          <ResultBadge d={d} />
                         </button>
                       </td>
                     ))}

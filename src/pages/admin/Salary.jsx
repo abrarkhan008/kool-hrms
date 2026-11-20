@@ -27,16 +27,7 @@ import { api, apiOn } from "../../lib/api.js";
 import { Download } from "lucide-react";
 import { bikeMonthAmount } from "../../lib/bike.js";
 
-const EDITABLE = [
-  "Paid days",
-  "Overtime",
-  "Night stay",
-  "KPI",
-  "Other add.",
-  "PF",
-  "ESI",
-  "Other ded.",
-];
+const EDITABLE = ["Other add.", "PF", "ESI", "Other ded."];
 export default function Salary() {
   const { state, update } = useStore();
   const [mk, setMk] = useState(monthKey());
@@ -63,24 +54,56 @@ export default function Salary() {
       `Salary_Slip_${r.emp.name.replace(/\s+/g, "_")}_${r.mk}.pdf`,
     );
   };
+  const saveCell = (id, key, v) =>
+    update((s) => {
+      const p = ((s.payroll[mk] ||= {})[id] ||= {});
+      if (v === "" || v == null) delete p[key];
+      else p[key] = Number(v);
+      return s;
+    });
   const edit = rows.find((r) => r.emp.id === editId);
   const view = rows.find((r) => r.emp.id === viewId);
 
   const cols = [
     ["CTC", (r) => inr(r.ctc)],
-    ["Paid days", (r) => `${r.paidDays}/${r.basis}`],
+    [
+      "Paid days",
+      (r) => (
+        <EditCell
+          value={r.paidDays}
+          suffix={`/${r.basis}`}
+          onSave={(v) => saveCell(r.emp.id, "paidDays", v)}
+        />
+      ),
+    ],
     ["Earned", (r) => inr(r.earned)],
     [
       "Overtime",
-      (r) =>
-        r.otAmount ? (
-          <span title={fmtHours(r.otHours)}>{inr(r.otAmount)}</span>
-        ) : (
-          "—"
-        ),
+      (r) => (
+        <EditCell
+          value={r.otAmount || ""}
+          onSave={(v) => saveCell(r.emp.id, "otAmt", v)}
+        />
+      ),
     ],
-    ["Night stay", (r) => (r.nightStayAmt ? inr(r.nightStayAmt) : "—")],
-    ["KPI", (r) => (r.kpi ? inr(r.kpi) : "—")],
+    [
+      "Night stay",
+      (r) => (
+        <EditCell
+          value={r.nightStayAmt || ""}
+          onSave={(v) => saveCell(r.emp.id, "nightAmt", v)}
+        />
+      ),
+    ],
+    [
+      "KPI",
+      (r) => (
+        <EditCell
+          value={r.kpi || ""}
+          onSave={(v) => saveCell(r.emp.id, "kpiAmt", v)}
+        />
+      ),
+    ],
     [
       "Other add.",
       (r) =>
@@ -152,23 +175,25 @@ export default function Salary() {
         />
       </div>
       <Card pad={false}>
-        <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-auto">
           <table className="w-full">
             <thead>
               <tr>
-                <th className="th">Employee</th>
+                <th className="th sticky left-0 top-0 z-30 min-w-[220px] bg-slate-100">
+                  Employee
+                </th>
                 {cols.map(([h]) => (
-                  <th key={h} className="th">
+                  <th key={h} className="th sticky top-0 z-20 bg-slate-100">
                     {h}
                   </th>
                 ))}
-                <th className="th" />
+                <th className="th sticky top-0 z-20 bg-slate-100" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {rows.map((r) => (
                 <tr key={r.emp.id} className="hover:bg-slate-50">
-                  <td className="td">
+                  <td className="td sticky left-0 z-10 min-w-[220px] bg-white">
                     <div className="flex items-center gap-2 font-medium">
                       {r.emp.name}
                       <button
@@ -221,7 +246,7 @@ export default function Salary() {
             </tbody>
             <tfoot>
               <tr className="bg-slate-50 font-semibold">
-                <td className="td">Totals</td>
+                <td className="td sticky left-0 z-10 bg-slate-50">Totals</td>
                 <td className="td">{inr(t.ctc)}</td>
                 <td className="td" />
                 <td className="td">{inr(t.earned)}</td>
@@ -319,7 +344,10 @@ function ExtrasModal({ r, mk, onClose, update, bikeAmt }) {
         >
           <Num value={f.nightStays} onChange={(v) => set("nightStays", v)} />
         </Field>
-        <Field label="Petrol allowance (₹) hint={Bike sheet total this month: ₹${bikeAmt}}">
+        <Field
+          label="Petrol allowance (₹)"
+          hint={`Bike sheet total this month: ₹${bikeAmt}`}
+        >
           <Num value={f.bike} onChange={(v) => set("bike", v)} />
         </Field>
         <Field label="Bonus (₹)">
@@ -589,5 +617,22 @@ function SlipModal({ r, onClose, settings, onEdit }) {
     >
       <SlipBody r={r} settings={settings} />
     </Modal>
+  );
+}
+function EditCell({ value, onSave, suffix }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <input
+        key={value}
+        type="number"
+        step="any"
+        defaultValue={value ?? ""}
+        className="w-24 rounded border border-slate-200 bg-white px-2 py-1 text-right focus:border-brand focus:outline-none"
+        onBlur={(e) => {
+          if (e.target.value !== String(value ?? "")) onSave(e.target.value);
+        }}
+      />
+      {suffix}
+    </span>
   );
 }

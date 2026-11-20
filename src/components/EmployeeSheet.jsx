@@ -10,7 +10,8 @@ import {
 } from "../lib/attendance.js";
 import { todayKey, timeLabel, fmtHours, dayName } from "../lib/date.js";
 import { Card, StatusBadge, Pill } from "./ui.jsx";
-import TimeAmPm from "./TimeAmPm.jsx";
+import TimeType from "./TimeType.jsx";
+import usePersist from "../lib/usePersist.js";
 
 const hhmm = (iso) => {
   if (!iso) return "";
@@ -27,7 +28,7 @@ const toIso = (date, t) => {
 export default function EmployeeSheet({ mk }) {
   const { state, update } = useStore();
   const staff = state.employees.filter((e) => e.active !== false);
-  const [empId, setEmpId] = useState(staff[0]?.id || "");
+  const [empId, setEmpId] = usePersist("att_emp", staff[0]?.id || "");
   const [msg, setMsg] = useState("");
   const emp = staff.find((e) => e.id === empId) || staff[0];
   const sum = useMemo(
@@ -51,7 +52,6 @@ export default function EmployeeSheet({ mk }) {
     setMsg(`${emp.name} punched ${kind} successfully.`);
   };
 
-  // change one field (in / out / status) of one day
   const setField = (date, field, value) =>
     update((s) => {
       const day = (s.attendance[date] ||= {});
@@ -144,7 +144,7 @@ export default function EmployeeSheet({ mk }) {
         pad={false}
         title={`${emp.name} · type punch in / out times, they save when you click outside the box`}
       >
-        <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-auto">
           <table className="w-full">
             <thead>
               <tr>
@@ -157,8 +157,11 @@ export default function EmployeeSheet({ mk }) {
                   "Overtime",
                   "Result",
                   "Override",
-                ].map((h) => (
-                  <th key={h} className="th">
+                ].map((h, i) => (
+                  <th
+                    key={h}
+                    className={`th sticky top-0 bg-slate-100 ${i === 0 ? "left-0 z-30" : "z-20"}`}
+                  >
                     {h}
                   </th>
                 ))}
@@ -167,31 +170,32 @@ export default function EmployeeSheet({ mk }) {
             <tbody className="divide-y divide-slate-100">
               {sum.days.map((d) => {
                 const manual = state.attendance[d.date]?.[emp.id]?.status || "";
+                const blank = d.code === "A" && !d.inTime && !manual;
                 return (
                   <tr
                     key={d.date}
                     className={d.weekOff || d.holiday ? "bg-slate-50" : ""}
                   >
-                    <td className="td whitespace-nowrap">
+                    <td
+                      className={`td sticky left-0 z-10 whitespace-nowrap ${d.weekOff || d.holiday ? "bg-slate-50" : "bg-white"}`}
+                    >
                       {d.date.split("-").reverse().join("-")}
                     </td>
                     <td className="td">{dayName(d.date).slice(0, 3)}</td>
                     <td className="td">
-                      <TimeAmPm
+                      <TimeType
+                        ap="AM"
                         key={d.date + "in" + d.inTime}
                         value={hhmm(d.inTime)}
-                        onChange={(v) =>
-                          v !== hhmm(d.inTime) && setField(d.date, "in", v)
-                        }
+                        onChange={(v) => setField(d.date, "in", v)}
                       />
                     </td>
                     <td className="td">
-                      <TimeAmPm
+                      <TimeType
+                        ap="PM"
                         key={d.date + "out" + d.outTime}
                         value={hhmm(d.outTime)}
-                        onChange={(v) =>
-                          v !== hhmm(d.outTime) && setField(d.date, "out", v)
-                        }
+                        onChange={(v) => setField(d.date, "out", v)}
                       />
                     </td>
                     <td className="td">
@@ -213,7 +217,7 @@ export default function EmployeeSheet({ mk }) {
                       />
                     </td>
                     <td className="td">
-                      <StatusBadge code={d.code} />{" "}
+                      {!blank && <StatusBadge code={d.code} />}{" "}
                       {d.late && (
                         <Pill cls="bg-red-100 text-red-600">Late</Pill>
                       )}
