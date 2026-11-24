@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Download } from "lucide-react";
 import { useStore } from "../../lib/store.jsx";
 import { todayKey } from "../../lib/date.js";
 import { PageHeader, Card, Field, Num, Pill } from "../../components/ui.jsx";
@@ -73,6 +73,13 @@ export default function Materials() {
         title="Materials"
         sub="One card per job. Tick each step as you finish it."
       >
+        <a
+          className="btn-ghost"
+          href="/Kool_Aircon_HVAC_Material_Stock_Checklist_A4.pdf"
+          download
+        >
+          <Download size={16} /> Stock Checklist PDF
+        </a>
         <button className="btn-primary" onClick={addJob}>
           <Plus size={16} /> New job
         </button>

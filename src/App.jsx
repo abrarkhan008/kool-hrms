@@ -22,6 +22,10 @@ import Work from "./pages/admin/Work.jsx";
 import Locations from "./pages/admin/Locations.jsx";
 import Bike from "./pages/admin/Bike.jsx";
 import Materials from "./pages/admin/Materials.jsx";
+import CrmModule from "./pages/admin/CrmModule.jsx";
+import CrmDashboard from "./pages/admin/CrmDashboard.jsx";
+import BikeDaily from "./pages/admin/BikeDaily.jsx";
+import { MODULES } from "./lib/crm.js";
 // "#0e7490" -> "14 116 144"
 const rgb = (hex) => {
   const n = parseInt(hex.replace("#", ""), 16);
@@ -88,9 +92,18 @@ export default function App() {
         <Route path="/lookup" element={<Lookup />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/bike" element={<Bike />} />
+        <Route path="/bike-daily" element={<BikeDaily />} />
         <Route path="/work" element={<Work />} />
         <Route path="/locations" element={<Locations />} />
         <Route path="/materials" element={<Materials />} />
+        <Route path="/crm" element={<CrmDashboard />} />
+        {Object.keys(MODULES).map((k) => (
+          <Route
+            key={k}
+            path={`/crm/${k}`}
+            element={<CrmModule key={k} mod={k} />}
+          />
+        ))}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

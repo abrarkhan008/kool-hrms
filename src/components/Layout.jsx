@@ -7,7 +7,6 @@ import {
   CalendarDays,
   Wallet,
   Trophy,
-  Search,
   ClipboardList,
   Bike,
   MapPin,
@@ -16,6 +15,15 @@ import {
   LogOut,
   Menu,
   X,
+  Briefcase,
+  Target,
+  Building2,
+  Wrench,
+  ShieldCheck,
+  IndianRupee,
+  FileText,
+  ClipboardCheck,
+  Gauge,
 } from "lucide-react";
 import { useStore } from "../lib/store.jsx";
 import Logo from "./Logo.jsx";
@@ -28,11 +36,20 @@ const NAV = [
   ["/leaves", "Leaves & Holidays", CalendarDays],
   ["/salary", "Salary", Wallet],
   ["/performance", "Performance / KPI", Trophy],
-  // ["/lookup", "Lookup", Search],
   ["/bike", "Bike reading", Bike],
+  ["/bike-daily", "Bike daily readings", Gauge],
   ["/work", "Work process", ClipboardList],
   ["/locations", "Live location", MapPin],
   ["/materials", "Materials", Package],
+  ["/crm", "CRM Dashboard", Briefcase],
+  ["/crm/enquiries", "Enquiries / Leads", Target],
+  ["/crm/customers", "Customers", Users],
+  ["/crm/quotations", "Quotations", FileText],
+  ["/crm/projects", "Projects", Building2],
+  ["/crm/services", "Services", Wrench],
+  ["/crm/amc", "AMC", ShieldCheck],
+  ["/crm/payments", "Payments & Invoices", IndianRupee],
+  ["/crm/dailyWork", "Daily work update", ClipboardCheck],
   ["/settings", "Settings", Cog],
 ];
 
@@ -46,12 +63,12 @@ export default function Layout({ children }) {
       <div className="border-b border-white/10 px-4 py-5">
         <Logo light />
       </div>
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {NAV.map(([to, label, Icon]) => (
           <NavLink
             key={to}
             to={to}
-            end={to === "/"}
+            end={to === "/" || to === "/crm"}
             onClick={() => setOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${isActive ? "bg-brand text-white" : "text-slate-300 hover:bg-white/10"}`
