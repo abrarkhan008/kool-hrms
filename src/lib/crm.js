@@ -128,6 +128,11 @@ export const MODULES = {
         l: "Customer feedback",
         opts: ["Excellent", "Good", "Average", "Poor"],
       },
+      {
+        k: "nextVisit",
+        l: "Next visit needed on (auto-creates a new service when Completed)",
+        type: "date",
+      },
       { k: "followUp", l: "Next follow-up date", type: "date" },
     ],
     cols: [
@@ -290,4 +295,67 @@ export async function makeReport(m, r, company, empName) {
   );
   d.text("Technician / Supervisor: ____________________", 14, y + 14);
   d.save(`${m.report.replace(/\s+/g, "_")}_${r.id}.pdf`);
+}
+
+// ---- Service tracking: gives the job to the technician + creates the next visit ----
+const WMAP = {
+  New: "Not started",
+  Assigned: "Not started",
+  "In Progress": "In process",
+  Completed: "Completed",
+};
+export function trackService(s, r) {
+  const t = String(r.technician || "")
+    .trim()
+    .toLowerCase();
+  const e =
+    t &&
+    (s.employees || []).find(
+      (x) => x.id.toLowerCase() === t || x.name.toLowerCase() === t,
+    );
+  s.work ||= [];
+  const i = s.work.findIndex((w) => w.serviceId === r.id);
+  if (e) {
+    const old = i >= 0 ? s.work[i] : {};
+    const w = {
+      start: "",
+      end: "",
+      action: "",
+      mNew: "",
+      mDefect: "",
+      mChanged: "",
+      repeat: false,
+      repeatBy: "",
+      ...old,
+      id: old.id || "svc-" + r.id,
+      serviceId: r.id,
+      empId: e.id,
+      date: r.visitDate || old.date || today(),
+      client: r.customer || "",
+      work: r.complaint || "Service",
+      status: WMAP[r.status] || "Not started",
+    };
+    if (i >= 0) s.work[i] = w;
+    else s.work.push(w);
+  } else if (i >= 0) s.work.splice(i, 1);
+
+  if (r.status === "Completed" && r.nextVisit && !r.spawned) {
+    const list = (s.crm.services ||= []);
+    const child = {
+      id: newId(list, "SRV"),
+      created: today(),
+      customer: r.customer,
+      phone: r.phone,
+      acType: r.acType,
+      complaint: "Follow-up visit for " + r.id,
+      technician: r.technician,
+      visitDate: r.nextVisit,
+      followUp: r.nextVisit,
+      status: "New",
+      history: [{ at: new Date().toLocaleString("en-IN"), status: "New" }],
+    };
+    list.push(child);
+    r.spawned = true;
+    trackService(s, child);
+  }
 }

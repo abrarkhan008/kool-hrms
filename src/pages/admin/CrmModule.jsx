@@ -9,6 +9,7 @@ import {
   renewalDue,
   today,
   makeReport,
+  trackService,
 } from "../../lib/crm.js";
 
 export default function CrmModule({ mod }) {
@@ -50,8 +51,24 @@ export default function CrmModule({ mod }) {
     if (!f[first.k]) return alert("Please fill: " + first.l);
     update((s) => {
       const a = ((s.crm ||= {})[mod] ||= []);
-      if (f.id) a[a.findIndex((x) => x.id === f.id)] = f;
-      else a.push({ ...f, id: newId(a, m.prefix), created: today() });
+      const old = f.id ? a.find((x) => x.id === f.id) : null;
+      const rec = { ...f };
+      if (!rec.id) {
+        rec.id = newId(a, m.prefix);
+        rec.created = today();
+      }
+      if (m.statusKey && (!old || old[m.statusKey] !== rec[m.statusKey])) {
+        rec.history = [
+          ...(rec.history || []),
+          {
+            at: new Date().toLocaleString("en-IN"),
+            status: rec[m.statusKey] || "-",
+          },
+        ];
+      }
+      if (old) a[a.findIndex((x) => x.id === rec.id)] = rec;
+      else a.push(rec);
+      if (mod === "services") trackService(s, rec);
       return s;
     });
     setF(null);
@@ -310,6 +327,20 @@ export default function CrmModule({ mod }) {
               </label>
             ))}
           </div>
+          {f.history?.length > 0 && (
+            <div className="mt-5">
+              <div className="label">Tracking history</div>
+              {f.history.map((h, i) => (
+                <div
+                  key={i}
+                  className="flex gap-3 border-l-2 border-brand py-1 pl-3 text-sm"
+                >
+                  <b>{h.status}</b>
+                  <span className="text-slate-400">{h.at}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </Modal>
       )}
     </div>
