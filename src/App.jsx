@@ -24,7 +24,7 @@ import Bike from "./pages/admin/Bike.jsx";
 import Materials from "./pages/admin/Materials.jsx";
 import CrmModule from "./pages/admin/CrmModule.jsx";
 import CrmDashboard from "./pages/admin/CrmDashboard.jsx";
-import BikeDaily from "./pages/admin/BikeDaily.jsx";
+// import BikeDaily from "./pages/admin/BikeDaily.jsx";
 import { MODULES } from "./lib/crm.js";
 // "#0e7490" -> "14 116 144"
 const rgb = (hex) => {
@@ -92,7 +92,7 @@ export default function App() {
         <Route path="/lookup" element={<Lookup />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/bike" element={<Bike />} />
-        <Route path="/bike-daily" element={<BikeDaily />} />
+        {/* <Route path="/bike-daily" element={<BikeDaily />} /> */}
         <Route path="/work" element={<Work />} />
         <Route path="/locations" element={<Locations />} />
         <Route path="/materials" element={<Materials />} />

@@ -18,6 +18,19 @@ export default function CrmModule({ mod }) {
   const emps = state.employees.filter((e) => e.active !== false);
   const empName = (id) =>
     state.employees.find((e) => e.id === id)?.name || id || "";
+  const empFieldKeys = Object.values(MODULES).flatMap((mm) =>
+    mm.fields.filter((x) => x.emp).map((x) => x.k),
+  );
+  const staffNames = [
+    ...new Set(
+      [
+        ...emps.map((e) => e.name),
+        ...Object.values(state.crm || {})
+          .flat()
+          .flatMap((r) => empFieldKeys.map((k) => empName(r[k]))),
+      ].filter(Boolean),
+    ),
+  ];
   const [q, setQ] = useState("");
   const [st, setSt] = useState("");
   const [f, setF] = useState(null);
@@ -105,14 +118,13 @@ export default function CrmModule({ mod }) {
       );
     if (x.emp)
       return (
-        <select className="input" value={v} onChange={on}>
-          <option value="">-- select --</option>
-          {emps.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name}
-            </option>
-          ))}
-        </select>
+        <input
+          className="input"
+          list="staff-names"
+          placeholder="Pick a name or type a new one"
+          value={empName(v)}
+          onChange={on}
+        />
       );
     if (x.type === "textarea")
       return <textarea rows={3} className="input" value={v} onChange={on} />;
@@ -146,6 +158,11 @@ export default function CrmModule({ mod }) {
           <Plus size={16} /> Add new
         </button>
       </PageHeader>
+      <datalist id="staff-names">
+        {staffNames.map((n) => (
+          <option key={n} value={n} />
+        ))}
+      </datalist>
       <datalist id="custs">
         {(state.crm?.customers || []).map((c) => (
           <option key={c.id} value={c.name} />

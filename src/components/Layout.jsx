@@ -37,7 +37,7 @@ const NAV = [
   ["/salary", "Salary", Wallet],
   ["/performance", "Performance / KPI", Trophy],
   ["/bike", "Bike reading", Bike],
-  ["/bike-daily", "Bike daily readings", Gauge],
+  // ["/bike-daily", "Bike daily readings", Gauge],
   ["/work", "Work process", ClipboardList],
   ["/locations", "Live location", MapPin],
   ["/materials", "Materials", Package],

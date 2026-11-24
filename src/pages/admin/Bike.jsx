@@ -1,7 +1,20 @@
 import { useState, useMemo } from "react";
-import { FileText, Files, Landmark, Pencil } from "lucide-react";
+import {
+  FileText,
+  Files,
+  Landmark,
+  Pencil,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useStore } from "../../lib/store.jsx";
-import { monthKey, monthLabel, inr, dayName } from "../../lib/date.js";
+import {
+  monthKey,
+  monthLabel,
+  inr,
+  dayName,
+  todayKey,
+} from "../../lib/date.js";
 import {
   Card,
   PageHeader,
@@ -10,27 +23,51 @@ import {
   Field,
   Num,
 } from "../../components/ui.jsx";
-import { bikeAll, periodKey, periodLabel } from "../../lib/bike.js";
+import { bikeAll, periodKey, periodLabel, dayKm } from "../../lib/bike.js";
+
+const shift = (d, n) => {
+  const x = new Date(d + "T00:00:00");
+  x.setDate(x.getDate() + n);
+  return x.toLocaleDateString("en-CA");
+};
 
 export default function Bike() {
   const { state, update } = useStore();
   const [mk, setMk] = useState(monthKey());
   const [half, setHalf] = useState(new Date().getDate() <= 15 ? "1" : "2");
   const [slipId, setSlipId] = useState(null);
+  const [day, setDay] = useState(todayKey());
   const rows = useMemo(() => bikeAll(state, mk, half), [state, mk, half]);
   const pk = periodKey(mk, half);
   const slip = rows.find((r) => r.emp.id === slipId);
   const sum = (k) => rows.reduce((a, r) => a + r[k], 0);
+  const emps = state.employees.filter((e) => e.active !== false);
+  const pickDay = (d) => {
+    if (!d) return;
+    setDay(d);
+    setMk(d.slice(0, 7));
+    setHalf(Number(d.slice(8)) <= 15 ? "1" : "2");
+  };
+  const rec = (id, d) => state.bike?.[d]?.[id] || {};
+  const dayTotal = emps.reduce((a, e) => a + dayKm(rec(e.id, day)), 0);
 
-  // save one starting / ending reading
+  // save one reading (ending reading also fills next day's starting reading)
   const setReading = (empId, date, field, value) =>
     update((s) => {
-      const day = ((s.bike ||= {})[date] ||= {});
-      const r = { ...(day[empId] || {}) };
-      if (value === "") delete r[field];
-      else r[field] = Number(value);
-      if (Object.keys(r).length) day[empId] = r;
-      else delete day[empId];
+      const bk = (s.bike ||= {});
+      const put = (d, f, v) => {
+        const dayO = (bk[d] ||= {});
+        const r = { ...(dayO[empId] || {}) };
+        if (v === "") delete r[f];
+        else r[f] = Number(v);
+        if (Object.keys(r).length) dayO[empId] = r;
+        else delete dayO[empId];
+      };
+      put(date, field, value);
+      if (field === "e" && value !== "") {
+        const nd = shift(date, 1);
+        if (bk[nd]?.[empId]?.s === undefined) put(nd, "s", value);
+      }
       return s;
     });
 
@@ -107,6 +144,97 @@ export default function Bike() {
           <Landmark size={16} /> Bank letter
         </button>
       </PageHeader>
+
+      <Card
+        pad={false}
+        title="Daily readings (all employees)"
+        action={
+          <>
+            <button
+              className="btn-ghost px-2.5"
+              onClick={() => pickDay(shift(day, -1))}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <input
+              type="date"
+              className="input w-44"
+              value={day}
+              onChange={(e) => pickDay(e.target.value)}
+            />
+            <button
+              className="btn-ghost px-2.5"
+              onClick={() => pickDay(shift(day, 1))}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </>
+        }
+      >
+        <div className="max-h-[60vh] overflow-auto">
+          <table className="w-full">
+            <thead>
+              <tr>
+                {[
+                  "Employee",
+                  "Starting reading",
+                  "Ending reading",
+                  "KM today",
+                ].map((h) => (
+                  <th key={h} className="th sticky top-0 bg-slate-100">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {emps.map((e) => {
+                const r = rec(e.id, day);
+                const prevEnd = rec(e.id, shift(day, -1)).e;
+                return (
+                  <tr key={e.id}>
+                    <td className="td">
+                      <div className="font-medium">{e.name}</div>
+                      <div className="text-xs text-slate-400">{e.id}</div>
+                    </td>
+                    {["s", "e"].map((f) => (
+                      <td key={f} className="px-2 py-1">
+                        <input
+                          type="number"
+                          step="0.1"
+                          className="input w-36"
+                          placeholder={
+                            f === "s" && prevEnd ? String(prevEnd) : ""
+                          }
+                          key={e.id + day + f + (r[f] ?? "")}
+                          defaultValue={r[f] ?? ""}
+                          onBlur={(ev) =>
+                            ev.target.value !== String(r[f] ?? "") &&
+                            setReading(e.id, day, f, ev.target.value)
+                          }
+                        />
+                      </td>
+                    ))}
+                    <td className="td font-bold">{dayKm(r) || "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-50 font-semibold">
+                <td className="td">Total for this day</td>
+                <td className="td" />
+                <td className="td" />
+                <td className="td text-brand">{dayTotal.toFixed(1)} km</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p className="px-4 py-2 text-xs text-slate-400">
+          Saves when you click outside the box. Typing an ending reading fills
+          the next day's starting reading.
+        </p>
+      </Card>
 
       <Card
         pad={false}
